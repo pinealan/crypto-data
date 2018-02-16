@@ -1,0 +1,6 @@
+*.log
+*.txt
+*.key
+*.config
+
+pysher/
