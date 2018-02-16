@@ -4,3 +4,4 @@
 *.config
 
 pysher/
+__pycache__/
