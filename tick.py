@@ -12,7 +12,7 @@ coins  = ['bch', 'btc', 'eth', 'ltc', 'xrp']
 fhs = {}
 lgs = {}
 for coin in coins:
-        fh = logging.FileHandler(coin + '.log', mode='a')
+        fh = logging.FileHandler('tick/' + coin + '.log', mode='a')
         fh.setFormatter(formatter)
         fh.setLevel(logging.DEBUG)
         fhs[coin] = fh

@@ -17,7 +17,7 @@ lgs = {}
 for coin in coins:
         name = coin + 'order'
 
-        fh = logging.FileHandler(name + '.log', mode='a')
+        fh = logging.FileHandler('order/' + name + '.log', mode='a')
         fh.setFormatter(formatter)
         fh.setLevel(logging.DEBUG)
         fhs[name] = fh

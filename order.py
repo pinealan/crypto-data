@@ -17,7 +17,7 @@ for coin in coins:
     for event in events:
         name = coin + event
 
-        fh = logging.FileHandler(name + '.log', mode='a')
+        fh = logging.FileHandler('order-diff/' + name + '.log', mode='a')
         fh.setFormatter(formatter)
         fh.setLevel(logging.DEBUG)
         fhs[name] = fh
