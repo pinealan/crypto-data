@@ -1,5 +1,31 @@
 import time
+from contextlib import contextmanager
+
 import pysher
+
+
+def setup_file_handler(name):
+    fh = logging.FileHandler(name + '.log', mode='a')
+    fh.setFormatter(formatter)
+    fh.setLevel(logging.DEBUG)
+    return fh
+
+
+def setup_logger(name, fh):
+    lg = logging.getLogger(name)
+    lg.addHandler(fh)
+    lg.setLevel(logging.DEBUG)
+    return lg
+
+
+@contextmanager
+def connect():
+    try:
+        exchange = BitstampFeed()
+        yield exchange
+    finally:
+        exchange.close()
+
 
 class BitstampFeed:
 
@@ -7,8 +33,15 @@ class BitstampFeed:
         api_key = 'de504dc5763aeef9ff52'
         self.pusher = pysher.Pusher(api_key, auto_sub=True)
         self.pusher.connection.needs_reconnect = True
-        self.pusher.connect()
         time.sleep(2)
+
+
+    def connect(self):
+        self.pusher.connect()
+
+
+    def close(self):
+        self.pusher.disconnect()
 
 
     def onTrade(self, pair, callback):
