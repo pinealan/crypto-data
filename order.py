@@ -4,48 +4,44 @@ import json
 import itertools
 
 import pysher
-from bitstamp import BitstampFeed
+from bitstamp import connect, setup_log_and_file
 
 formatter = logging.Formatter('%(message)s')
 
 coins  = ['bch', 'btc', 'eth', 'ltc', 'xrp']
-events = ['create', 'delete', 'change']
 
 fhs = {}
 lgs = {}
 for coin in coins:
-    for event in events:
-        name = coin + event
+    fh, lg = setup_log_and_file('orderdiff/' + coin + '.log')
+    fhs[coin] = fh
+    lgs[coin] = lg
 
-        fh = logging.FileHandler('order-diff/' + name + '.log', mode='a')
-        fh.setFormatter(formatter)
-        fh.setLevel(logging.DEBUG)
-        fhs[name] = fh
+f = logging.FileHandler('bitstamp.log', mode='w')
+f.setLevel(logging.WARNING)
+f.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
 
-        lg = logging.getLogger(name)
-        lg.addHandler(fh)
-        lg.setLevel(logging.DEBUG)
-        lgs[name] = lg
+log = logging.getLogger('pysher')
+log.addHandler(f)
 
 
-def loginfo(logger):
-    def wrapper(x):
-        logger.info(x)
-    return wrapper
+# Named function is required for loop, otherwise lambdas will be discarded
+def log_info(logger, diff_type):
+    def log(x):
+        logger.info(x[:-1] + ', "type": "' + diff_type + '"}')
+    return log
 
 
 def main():
-    bs = BitstampFeed()
+    with connect() as conn:
+        for coin in coins:
+            conn.onCreate(coin + 'usd', log_info(lgs[coin], 'create'))
+            conn.onDelete(coin + 'usd', log_info(lgs[coin], 'delete'))
+            conn.onChange(coin + 'usd', log_info(lgs[coin], 'change'))
+        while True:
+            time.sleep(5)
 
-    for coin in coins:
-        bs.onCreate(coin + 'usd', loginfo(lgs[coin + 'create']))
-        bs.onDelete(coin + 'usd', loginfo(lgs[coin + 'delete']))
-        bs.onChange(coin + 'usd', loginfo(lgs[coin + 'change']))
-
-    connection = bs.pusher.connection
-    while connection.is_alive():
-        time.sleep(10)
-
+    # Log disconnection
     log.error('Thread disconnected')
 
 

@@ -1,10 +1,8 @@
 import logging
-import time
 import json
-import itertools
 
-import pysher
-from bitstamp import BitstampFeed
+import requests as req
+from bitstamp import setup_log_and_file
 
 # Logging formatter
 formatter = logging.Formatter('%(message)s')
@@ -15,33 +13,26 @@ coins  = ['bch', 'btc', 'eth', 'ltc', 'xrp']
 fhs = {}
 lgs = {}
 for coin in coins:
-        name = coin + 'order'
-
-        fh = logging.FileHandler('order/' + name + '.log', mode='a')
-        fh.setFormatter(formatter)
-        fh.setLevel(logging.DEBUG)
-        fhs[name] = fh
-
-        lg = logging.getLogger(name)
-        lg.addHandler(fh)
-        lg.setLevel(logging.DEBUG)
-        lgs[name] = lg
+        fh, lg = setup_log_and_file('orderbook/' + coin + '.log')
+        fhs[coin] = fh
+        lgs[coin] = lg
 
 
-def loginfo(logger):
-    def wrapper(x):
-        logger.info(str(time.time()) + ': ' + x)
-    return wrapper
+def reqOrderbook(coin):
+    try:
+        res = req.get('https://bitstamp.net/api/v2/order_book/' + coin)
+        if res.status_code != 200:
+            raise ConnectionError(res.status_code)
+        return json.loads(res.text)
+    except ConnectionError:
+        logging.error('Request failed')
+        raise
 
 
 def main():
-    bs = BitstampFeed()
-
     for coin in coins:
-        bs.onOrderbook(coin + 'usd', loginfo(lgs[coin + 'order']))
-
-    connection = bs.pusher.connection
-    time.sleep(2)
+        endpoint = coin + 'usd'
+        lgs[coin].info(reqOrderbook(endpoint))
 
 
 if __name__ == '__main__':
