@@ -3,7 +3,7 @@ import time
 import json
 
 import pysher
-from bitstamp import BitstampFeed
+from bitstamp import connect, setup_log_and_file
 
 formatter = logging.Formatter('%(message)s')
 
@@ -12,36 +12,35 @@ coins  = ['bch', 'btc', 'eth', 'ltc', 'xrp']
 fhs = {}
 lgs = {}
 for coin in coins:
-        fh = logging.FileHandler('tick/' + coin + '.log', mode='a')
-        fh.setFormatter(formatter)
-        fh.setLevel(logging.DEBUG)
-        fhs[coin] = fh
+    fh, lg = setup_log_and_file('tick/' + coin + '.log')
+    fhs[coin] = fh
+    lgs[coin] = lg
 
-        lg = logging.getLogger(coin)
-        lg.addHandler(fh)
-        lg.setLevel(logging.DEBUG)
-        lgs[coin] = lg
-
-fh = logging.FileHandler('bitstamp.log', mode='a')
-fh.setLevel(logging.WARNING)
-fh.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+f = logging.FileHandler('bitstamp.log', mode='w')
+f.setLevel(logging.WARNING)
+f.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
 
 log = logging.getLogger('pysher')
-log.addHandler(fh)
+log.addHandler(f)
+
+
+# Named function is required for loop, otherwise lambdas will be discarded
+def log_info(logger):
+    def log(x):
+        logger.info(x)
+    return log
 
 
 def main():
-    bs = BitstampFeed()
+    with connect() as conn:
+        for coin in coins:
+            conn.onTrade(coin + 'usd', log_info(lgs[coin]))
+        while True:
+            time.sleep(5)
 
-    for coin in coins:
-        bs.onTrade(coin + 'usd', lambda x: lgs[coin].info(x))
-
-    connection = bs.pusher.connection
-
-    while connection.is_alive():
-        time.sleep(10)
-
+    # Log disconnection
     log.error('Thread disconnected')
+
 
 if __name__ == '__main__':
     main()
