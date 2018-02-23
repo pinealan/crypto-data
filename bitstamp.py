@@ -1,11 +1,20 @@
 import time
+import os
+import logging
 from contextlib import contextmanager
 
 import pysher
 
 
-def setup_file_handler(name):
-    fh = logging.FileHandler(name + '.log', mode='a')
+formatter = logging.Formatter('%(message)s')
+
+
+def setup_file(name):
+    directory = os.path.dirname(name)
+    if not os.path.exists(directory) and directory != '':
+        os.makedirs(directory, exist_ok=True)
+
+    fh = logging.FileHandler(name, mode='a')
     fh.setFormatter(formatter)
     fh.setLevel(logging.DEBUG)
     return fh
@@ -18,10 +27,17 @@ def setup_logger(name, fh):
     return lg
 
 
+def setup_log_and_file(name):
+    fh = setup_file(name)
+    lg = setup_logger(name, fh)
+    return fh, lg
+
+
 @contextmanager
 def connect():
     try:
         exchange = BitstampFeed()
+        exchange.connect()
         yield exchange
     finally:
         exchange.close()
@@ -33,11 +49,13 @@ class BitstampFeed:
         api_key = 'de504dc5763aeef9ff52'
         self.pusher = pysher.Pusher(api_key, auto_sub=True)
         self.pusher.connection.needs_reconnect = True
-        time.sleep(2)
 
 
     def connect(self):
         self.pusher.connect()
+
+        # @Incomplete properly detect connection establishment
+        time.sleep(2)
 
 
     def close(self):
