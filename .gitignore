@@ -3,5 +3,4 @@
 *.key
 *.config
 
-pysher/
 __pycache__/
