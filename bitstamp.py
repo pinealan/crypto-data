@@ -1,12 +1,12 @@
-import time
 import os
+import time
 import logging
-from contextlib import contextmanager
+import contextlib
 
 import pysher
 
 
-formatter = logging.Formatter('%(message)s')
+formatter = logging.Formatter('%(asctime)s %(message)s')
 
 
 def setup_file(name):
@@ -33,7 +33,7 @@ def setup_log_and_file(name):
     return fh, lg
 
 
-@contextmanager
+@contextlib.contextmanager
 def connect():
     try:
         exchange = BitstampFeed()
@@ -50,6 +50,8 @@ class BitstampFeed:
         self.pusher = pysher.Pusher(api_key, auto_sub=True)
         self.pusher.connection.needs_reconnect = True
 
+    def is_connected(self):
+        return self.pusher.connection.socket.sock is not None
 
     def connect(self):
         self.pusher.connect()
@@ -57,10 +59,24 @@ class BitstampFeed:
         # @Incomplete properly detect connection establishment
         time.sleep(2)
 
-
     def close(self):
         self.pusher.disconnect()
 
+    @staticmethod
+    def _remove_btc(pair):
+        return '_' + pair if pair != 'btcusd' else ''
+
+    def on(self, event, pair, cb):
+        pair = self._remove_btc(pair)
+
+        if event == 'order_create':
+            self._bindSocket('live_orders{}'.format(pair), 'order_created', cb)
+        elif event == 'order_delete':
+            self._bindSocket('live_orders{}'.format(pair), 'order_deleted', cb)
+        elif event == 'order_take':
+            self._bindSocket('live_orders{}'.format(pair), 'order_changed', cb)
+        elif event == 'trade':
+            self._bindSocket('live_trades{}'.format(pair), 'trade', cb)
 
     def onTrade(self, pair, callback):
         if pair == 'btcusd':
@@ -68,13 +84,11 @@ class BitstampFeed:
         else:
             self._bindSocket('live_trades_' + pair, 'trade', callback)
 
-
     def onCreate(self, pair, callback):
         if pair == 'btcusd':
             self._bindSocket('live_orders', 'order_created', callback)
         else:
             self._bindSocket('live_orders_' + pair, 'order_created', callback)
-
 
     def onDelete(self, pair, callback):
         if pair == 'btcusd':
@@ -82,20 +96,17 @@ class BitstampFeed:
         else:
             self._bindSocket('live_orders_' + pair, 'order_deleted', callback)
 
-
     def onChange(self, pair, callback):
         if pair == 'btcusd':
             self._bindSocket('live_orders', 'order_changed', callback)
         else:
             self._bindSocket('live_orders_' + pair, 'order_changed', callback)
 
-
     def onOrderbook(self, pair, callback):
         if pair == 'btcusd':
             self._bindSocket('order_book', 'data', callback)
         else:
             self._bindSocket('order_book_' + pair, 'data', callback)
-
 
     def _bindSocket(self,  channel_name, event, callback):
 
