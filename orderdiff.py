@@ -13,7 +13,7 @@ coins  = ['bch', 'btc', 'eth', 'ltc', 'xrp']
 fhs = {}
 lgs = {}
 for coin in coins:
-    fh, lg = setup_log_and_file('orderdiff/' + coin + '.log')
+    fh, lg = setup_log_and_file('/mnt/orderdiff/' + coin + '.log')
     fhs[coin] = fh
     lgs[coin] = lg
 
