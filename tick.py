@@ -5,7 +5,6 @@ import json
 import pysher
 from bitstamp import connect, setup_log_and_file
 
-formatter = logging.Formatter('%(message)s')
 
 coins  = ['bch', 'btc', 'eth', 'ltc', 'xrp']
 
