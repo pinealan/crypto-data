@@ -75,7 +75,7 @@ class DataSink:
         # @Todo: Support other resolutions, only DAY supported right now
         p = self._path / self._time.strftime('%Y/%m')
         p.mkdir(mode=0o775, parents=True, exist_ok=True)
-        p /= str(self._time.day) + self._ext
+        p /= str(self._time.strftime('%d')) + self._ext
 
         # line buffering, assuming each write will be a line
         self._file = p.open(mode='w', buffering=1)
