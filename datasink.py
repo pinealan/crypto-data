@@ -35,10 +35,16 @@ class DataSink:
 
     @Future Creates a new data file according to one of the supported strategies.
     """
+
+    # Resolutions
     MINUTE = 'min'
     HOUR   = 'hour'
     DAY    = 'day'
     MONTH  = 'month'
+
+    # Backends
+    OS = 'os'
+    S3 = 's3'
 
     def __init__(
             self,
@@ -47,13 +53,15 @@ class DataSink:
             header=None,
             footer=None,
             add_time=True,
-            resolution=DAY):
+            resolution=DAY,
+            backend=OS):
         self.resolution = resolution
         self._path = Path(path)
         self._ext = ext
         self._header = header
         self._footer = footer
         self._add_time = add_time
+        self._backend = backend
 
         self._time = datetime.today()
         self._newfile()
@@ -82,25 +90,23 @@ class DataSink:
         """Close the datasink."""
         self._file.close()
 
-    def _newfile(self):
+    def _getfullpath(self):
         if self.resolution == DataSink.DAY:
-            p = self._path / self._time.strftime('%Y/%m')
-            p.mkdir(mode=0o775, parents=True, exist_ok=True)
-            p /= str(self._time.strftime('%d')) + self._ext
+            p = self._path / (self._time.strftime('%Y/%m/%d') + self._ext)
         elif self.resolution == DataSink.MONTH:
-            p = self._path / self._time.strftime('%Y')
-            p.mkdir(mode=0o775, parents=True, exist_ok=True)
-            p /= str(self._time.strftime('%m')) + self._ext
+            p = self._path / (self._time.strftime('%Y/%m') + self._ext)
         elif self.resolution == DataSink.HOUR:
-            p = self._path / self._time.strftime('%Y/%m/%d')
-            p.mkdir(mode=0o775, parents=True, exist_ok=True)
-            p /= str(self._time.strftime('%H')) + self._ext
+            p = self._path / (self._time.strftime('%Y/%m/%d/%H') + self._ext)
         elif self.resolution == DataSink.MINUTE:
-            p = self._path / self._time.strftime('%Y/%m/%d/%H')
-            p.mkdir(mode=0o775, parents=True, exist_ok=True)
-            p /= str(self._time.strftime('%M')) + self._ext
-        # line buffering, assuming each write will be a line
-        self._file = p.open(mode='w', buffering=1)
+            p = self._path / (self._time.strftime('%Y/%m/%d/%H/%M') + self._ext)
+        return p
+
+    def _newfile(self):
+        p = self._getfullpath()
+        if self._backend == DataSink.OS:
+            p.parent.mkdir(mode=0o775, parents=True, exist_ok=True)
+            # line buffering, assuming each write will be a line
+            self._file = p.open(mode='w', buffering=1)
 
     def _addheader(self):
         if self._header:
