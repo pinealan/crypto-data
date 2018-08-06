@@ -18,7 +18,7 @@ def record_diff(record, diff_type, sink):
     return
 
 
-def main(*, path, pairs, resolution=DataSink.MINUTE, backend=None):
+def main(*, path, pairs, resolution=DataSink.DAY, backend=None):
     # Use csv header
     header = ['time', 'id', 'price', 'volume', 'order_type', 'diff_type', 'src_time']
     header = ','.join(header)
