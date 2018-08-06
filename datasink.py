@@ -1,3 +1,4 @@
+import io
 from pathlib import Path
 from datetime import datetime, date
 
@@ -21,8 +22,11 @@ class DataSink:
 
     Supported resolutions are [minute, hour, day, month].
 
-    Attributes:
-        resolution: The time resolution for new files to be created.
+    Cloud storage (AWS S3) is also supported. The first node in a path will be treated as the bucket
+    name. i.e. path = bucket/data -> gets uploaded to s3://bucket
+
+    .. note:
+        Datasink does not create a S3 bucket for you.
 
     Args:
         path: Path to data directory. Absolute paths are prefered. Relative paths will be taken
@@ -32,6 +36,7 @@ class DataSink:
         footer: (optional) string to be put at the bottom of each file
         timestamp: (optional) Toggle to prepend timestamp to the data records. Defaults to false.
         resolution: (optional) Defaults to DataSink.DAY
+        backend: (optional) Defaults to OS file system. Valid values are 'os', 's3'
 
     @Future Creates a new data file according to one of the supported strategies.
     """
@@ -54,14 +59,29 @@ class DataSink:
             footer=None,
             add_time=True,
             resolution=DAY,
-            backend=OS):
+            backend=OS,
+            backend_config={}):
         self.resolution = resolution
-        self._path = Path(path)
         self._ext = ext
         self._header = header
         self._footer = footer
         self._add_time = add_time
         self._backend = backend
+
+        # @Todo: Handle import exceptions
+        if backend == self.OS:
+            self._path = Path(path)
+        elif backend == self.S3:
+            import boto3
+            pparts = Path(path).parts
+            if 'aws_access_key_id' in backend_config and 'aws_secret_access_key' in backend_config:
+                session = boto3.Session(
+                        aws_access_key_id=backend_config['aws_access_key_id'],
+                        aws_secret_access_key=backend_config['aws_secret_access_key'])
+                self._bucket = session.resource('s3').Bucket(pparts[0])
+            else:
+                self._bucket = boto3.resource('s3').Bucket(pparts[0])
+            self._path = Path('/'.join(pparts[1:]))
 
         self._time = datetime.today()
         self._newfile()
@@ -72,11 +92,14 @@ class DataSink:
         if self._add_time:
             msg = '{},{}'.format(datetime.now().timestamp(), msg)
         msg += '\n'
+
         self.file().write(msg)
 
     def file(self):
-        """Returns file object the approicate with approperiate path."""
-        # @Todo: Support other resolutions, only DAY supported right now
+        """Returns file object the approicate with approperiate path.
+
+        @Todo: Inline
+        """
         if datetime.today() != self._time:
             self._time = date.today()
             self._addfooter()
@@ -88,7 +111,11 @@ class DataSink:
 
     def close(self):
         """Close the datasink."""
-        self._file.close()
+        if self._backend == DataSink.OS:
+            self._file.close()
+        elif self._backend == DataSink.S3:
+            self._obj.put(self._file.getvalue())
+            self._file.close()
 
     def _getfullpath(self):
         if self.resolution == DataSink.DAY:
@@ -107,6 +134,10 @@ class DataSink:
             p.parent.mkdir(mode=0o775, parents=True, exist_ok=True)
             # line buffering, assuming each write will be a line
             self._file = p.open(mode='w', buffering=1)
+
+        elif self._backend == DataSink.S3:
+            self._file = io.StringIO()
+            self._obj = self._bucket.Object(str(p))
 
     def _addheader(self):
         if self._header:

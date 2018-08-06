@@ -63,3 +63,13 @@ def test_datasink_minute_create_file():
 
     del sink
     shutil.rmtree(path)
+
+
+def test_datasink_s3_create():
+    path    = 'bucket/__test'
+    ext     = '.csv'
+    backend = DataSink.S3
+
+    sink = DataSink(path=path, ext=ext, backend=backend)
+    sink.write('hello world')
+    # nothing should have happened till this point
