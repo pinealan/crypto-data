@@ -3,7 +3,7 @@ from pathlib import Path
 from datetime import datetime, date
 
 
-class DataSink:
+class Datasink:
     """Abstraction over file management for data lake curation.
 
     A directory is created to place all collected data. A date based directory
@@ -35,7 +35,7 @@ class DataSink:
         header: (optional) string to be put at the top of each file
         footer: (optional) string to be put at the bottom of each file
         timestamp: (optional) Toggle to prepend timestamp to the data records. Defaults to false.
-        resolution: (optional) Defaults to DataSink.DAY
+        resolution: (optional) Defaults to Datasink.DAY
         backend: (optional) Defaults to OS file system. Valid values are 'os', 's3'
 
     @Future Creates a new data file according to one of the supported strategies.
@@ -106,32 +106,32 @@ class DataSink:
 
     def close(self):
         """Close the datasink."""
-        if self._backend == DataSink.OS:
+        if self._backend == Datasink.OS:
             self._file.close()
-        elif self._backend == DataSink.S3:
+        elif self._backend == Datasink.S3:
             self._obj.put(Body=bytes(self._file.getvalue(), 'utf8'))
             self._file.close()
 
     def _getfullpath(self):
-        if self.resolution == DataSink.DAY:
+        if self.resolution == Datasink.DAY:
             p = self._path / (self._time.strftime('%Y/%m/%d') + self._ext)
-        elif self.resolution == DataSink.MONTH:
+        elif self.resolution == Datasink.MONTH:
             p = self._path / (self._time.strftime('%Y/%m') + self._ext)
-        elif self.resolution == DataSink.HOUR:
+        elif self.resolution == Datasink.HOUR:
             p = self._path / (self._time.strftime('%Y/%m/%d/%H') + self._ext)
-        elif self.resolution == DataSink.MINUTE:
+        elif self.resolution == Datasink.MINUTE:
             p = self._path / (self._time.strftime('%Y/%m/%d/%H/%M') + self._ext)
         return p
 
     def _newfile(self):
         p = self._getfullpath()
         self._filepath = p
-        if self._backend == DataSink.OS:
+        if self._backend == Datasink.OS:
             p.parent.mkdir(mode=0o775, parents=True, exist_ok=True)
             # line buffering, assuming each write will be a line
             self._file = p.open(mode='w', buffering=1)
 
-        elif self._backend == DataSink.S3:
+        elif self._backend == Datasink.S3:
             self._file = io.StringIO()
             self._obj = self._bucket.Object(str(p))
 

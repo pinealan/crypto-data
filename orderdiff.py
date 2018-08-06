@@ -3,7 +3,7 @@ import json
 from functools import partial
 
 import bitstamp
-from datasink import DataSink
+from datasink import Datasink
 
 
 def record_diff(record, diff_type, sink):
@@ -18,7 +18,7 @@ def record_diff(record, diff_type, sink):
     return
 
 
-def main(*, path, pairs, resolution=DataSink.DAY, backend=None):
+def main(*, path, pairs, resolution=Datasink.DAY, backend=None):
     # Use csv header
     header = ['time', 'id', 'price', 'volume', 'order_type', 'diff_type', 'src_time']
     header = ','.join(header)
@@ -27,7 +27,7 @@ def main(*, path, pairs, resolution=DataSink.DAY, backend=None):
     # Prepare sinks
     sinks = {}
     for pair in pairs:
-        sinks[pair] = DataSink(
+        sinks[pair] = Datasink(
             path='/'.join([path, pair]),
             ext=ext,
             header=header,
