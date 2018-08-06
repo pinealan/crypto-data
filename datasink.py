@@ -114,7 +114,7 @@ class DataSink:
         if self._backend == DataSink.OS:
             self._file.close()
         elif self._backend == DataSink.S3:
-            self._obj.put(self._file.getvalue())
+            self._obj.put(Body=bytes(self._file.getvalue(), 'utf8'))
             self._file.close()
 
     def _getfullpath(self):
