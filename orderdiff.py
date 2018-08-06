@@ -6,10 +6,6 @@ import bitstamp
 from datasink import DataSink
 
 
-# Absolute paths are prefered. Relative paths will be relative to the script.
-DATA_DIR = 'orderdiff'
-
-
 def record_diff(record, diff_type, sink):
     rec = json.loads(record)
     rec['diff_type'] = diff_type
@@ -22,17 +18,21 @@ def record_diff(record, diff_type, sink):
     return
 
 
-def main():
-    # Configurations
-    pairs  = ['bchusd', 'btcusd', 'ethusd', 'ltcusd', 'xrpusd']
-    header = ['time', 'id', 'price', 'volume', 'order_type', 'diff_type', 'src_time']
-    ext = '.csv'
-
+def main(*, path, pairs, resolution=DataSink.MINUTE, backend=None):
     # Use csv header
+    header = ['time', 'id', 'price', 'volume', 'order_type', 'diff_type', 'src_time']
     header = ','.join(header)
+    ext    = '.csv'
 
     # Prepare sinks
-    sinks = {pair: DataSink(path='/'.join([DATA_DIR, pair]), ext=ext, header=header) for pair in pairs}
+    sinks = {}
+    for pair in pairs:
+        sinks[pair] = DataSink(
+            path='/'.join([path, pair]),
+            ext=ext,
+            header=header,
+            resolution=resolution,
+            backend=backend)
 
     with bitstamp.connect() as conn:
         for pair in pairs:
@@ -44,4 +44,12 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # default config
+    config = {
+        'pairs': ['bchusd', 'btcusd', 'ethusd', 'ltcusd', 'xrpusd'],
+    }
+    with open('diff.conf') as f:
+        for line in f:
+            name, var = line.partition('=')[::2]
+            config[name.strip()] = var.strip()
+    main(**config)

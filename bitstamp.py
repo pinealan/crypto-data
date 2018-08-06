@@ -19,7 +19,7 @@ def connect():
 class BitstampFeed:
     def __init__(self):
         api_key = 'de504dc5763aeef9ff52'
-        self.pusher = pysher.Pusher(api_key, auto_sub=True, log_level=logging.DEBUG)
+        self.pusher = pysher.Pusher(api_key, auto_sub=True, log_level=logging.INFO)
         self.pusher.connection.needs_reconnect = True
 
     def is_connected(self):
