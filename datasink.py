@@ -57,7 +57,7 @@ class DataSink:
             ext='',
             header=None,
             footer=None,
-            add_time=True,
+            add_time=False,
             resolution=DAY,
             backend=OS,
             backend_config={}):
@@ -93,21 +93,15 @@ class DataSink:
             msg = '{},{}'.format(datetime.now().timestamp(), msg)
         msg += '\n'
 
-        self.file().write(msg)
+        if self._getfullpath() != self._filepath:
+            self._nextfile()
 
-    def file(self):
-        """Returns file object the approicate with approperiate path.
+        self._file.write(msg)
 
-        @Todo: Inline
-        """
-        if datetime.today() != self._time:
-            self._time = date.today()
-            self._addfooter()
-            self._newfile()
-            self._addheader()
-            return self._file
-        else:
-            return self._file
+    def _nextfile(self):
+        self._addfooter()
+        self._newfile()
+        self._addheader()
 
     def close(self):
         """Close the datasink."""
@@ -130,6 +124,7 @@ class DataSink:
 
     def _newfile(self):
         p = self._getfullpath()
+        self._filepath = p
         if self._backend == DataSink.OS:
             p.parent.mkdir(mode=0o775, parents=True, exist_ok=True)
             # line buffering, assuming each write will be a line
