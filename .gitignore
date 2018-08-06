@@ -1,6 +1,7 @@
 *.log
 *.txt
 *.key
+*.conf
 *.config
 
 __pycache__/
