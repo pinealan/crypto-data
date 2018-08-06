@@ -100,6 +100,7 @@ class DataSink:
 
     def _nextfile(self):
         self._addfooter()
+        self.close()
         self._newfile()
         self._addheader()
 
