@@ -51,12 +51,34 @@ class Datasink:
     OS = 'os'
     S3 = 's3'
 
+    _dirfmt = {
+        MINUTE : '%Y/%m/%d/%H/',
+        HOUR   : '%Y/%m/%d/',
+        DAY    : '%Y/%m/',
+        MONTH  : '%Y/'
+    }
+
+    _filefmt = {
+        MINUTE : '%M',
+        HOUR   : '%H',
+        DAY    : '%d',
+        MONTH  : '%m'
+    }
+
+    _fullfilefmt = {
+        MINUTE : '%Y%m%d-%H%M',
+        HOUR   : '%Y%m%d-%H',
+        DAY    : '%Y%m%d',
+        MONTH  : '%Y%m'
+    }
+
     def __init__(
             self,
             path,
             ext='',
             header=None,
             footer=None,
+            fullname=False,
             resolution=DAY,
             backend=OS,
             backend_config={}):
@@ -65,6 +87,7 @@ class Datasink:
         self._header = header
         self._footer = footer
         self._backend = backend
+        self._fullname = fullname
 
         # @Todo: Handle import exceptions
         if backend == self.OS:
@@ -86,10 +109,11 @@ class Datasink:
 
     def write(self, msg, add_time=False, delimiter=','):
         """Write entry to data sink."""
-        if add_time:
-            msg = '{}{}{}'.format(datetime.now().timestamp(), delimiter, msg)
         if self._getfullpath() != self._filepath:
             self._nextfile()
+
+        if add_time:
+            msg = '{}{}{}'.format(datetime.now().timestamp(), delimiter, msg)
 
         self._file.write(msg + '\n')
 
@@ -108,19 +132,18 @@ class Datasink:
             self._file.close()
 
     def _getfullpath(self):
+        """Returns Path object of approperiate file."""
         time = datetime.now()
-        if self.resolution == Datasink.DAY:
-            p = self._path / (time.strftime('%Y/%m/%d') + self._ext)
-        elif self.resolution == Datasink.MONTH:
-            p = self._path / (time.strftime('%Y/%m') + self._ext)
-        elif self.resolution == Datasink.HOUR:
-            p = self._path / (time.strftime('%Y/%m/%d/%H') + self._ext)
-        elif self.resolution == Datasink.MINUTE:
-            p = self._path / (time.strftime('%Y/%m/%d/%H/%M') + self._ext)
-        return p
+        if self._fullname:
+            subpath = time.strftime(self._dirfmt[self.resolution] + self._fullfilefmt[self.resolution])
+        else:
+            subpath = time.strftime(self._dirfmt[self.resolution] + self._filefmt[self.resolution])
+
+        return self._path / (subpath + self._ext)
 
     def _newfile(self):
         p = self._getfullpath()
+
         self._filepath = p
         if self._backend == Datasink.OS:
             p.parent.mkdir(mode=0o775, parents=True, exist_ok=True)
