@@ -1,6 +1,6 @@
 import io
 from pathlib import Path
-from datetime import datetime, date
+from datetime import datetime
 
 
 class Datasink:
@@ -83,7 +83,6 @@ class Datasink:
                 self._bucket = boto3.resource('s3').Bucket(pparts[0])
             self._path = Path('/'.join(pparts[1:]))
 
-        self._time = datetime.today()
         self._newfile()
         self._addheader()
 
@@ -113,14 +112,15 @@ class Datasink:
             self._file.close()
 
     def _getfullpath(self):
+        time = datetime.now()
         if self.resolution == Datasink.DAY:
-            p = self._path / (self._time.strftime('%Y/%m/%d') + self._ext)
+            p = self._path / (time.strftime('%Y/%m/%d') + self._ext)
         elif self.resolution == Datasink.MONTH:
-            p = self._path / (self._time.strftime('%Y/%m') + self._ext)
+            p = self._path / (time.strftime('%Y/%m') + self._ext)
         elif self.resolution == Datasink.HOUR:
-            p = self._path / (self._time.strftime('%Y/%m/%d/%H') + self._ext)
+            p = self._path / (time.strftime('%Y/%m/%d/%H') + self._ext)
         elif self.resolution == Datasink.MINUTE:
-            p = self._path / (self._time.strftime('%Y/%m/%d/%H/%M') + self._ext)
+            p = self._path / (time.strftime('%Y/%m/%d/%H/%M') + self._ext)
         return p
 
     def _newfile(self):
