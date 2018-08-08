@@ -25,7 +25,6 @@ def main(*, path, pairs, resolution=Datasink.DAY, backend=None):
             path='/'.join([path, pair]),
             ext=ext,
             header=header,
-            add_time=False,
             resolution=resolution,
             backend=backend)
 
