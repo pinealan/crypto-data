@@ -57,7 +57,6 @@ class Datasink:
             ext='',
             header=None,
             footer=None,
-            add_time=False,
             resolution=DAY,
             backend=OS,
             backend_config={}):
@@ -65,7 +64,6 @@ class Datasink:
         self._ext = ext
         self._header = header
         self._footer = footer
-        self._add_time = add_time
         self._backend = backend
 
         # @Todo: Handle import exceptions
@@ -86,16 +84,14 @@ class Datasink:
         self._newfile()
         self._addheader()
 
-    def write(self, msg):
+    def write(self, msg, add_time=False, delimiter=','):
         """Write entry to data sink."""
-        if self._add_time:
-            msg = '{},{}'.format(datetime.now().timestamp(), msg)
-        msg += '\n'
-
+        if add_time:
+            msg = '{}{}{}'.format(datetime.now().timestamp(), delimiter, msg)
         if self._getfullpath() != self._filepath:
             self._nextfile()
 
-        self._file.write(msg)
+        self._file.write(msg + '\n')
 
     def _nextfile(self):
         self._addfooter()
