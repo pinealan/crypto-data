@@ -63,10 +63,36 @@ def test_datasink_minute_create_file():
     shutil.rmtree(path)
 
 
-def test_datasink_s3_create():
+def test_datasink_headers():
+    header  = 'header'
+    teststr = 'test'
+    sink = Datasink(path=path, ext=ext, header=header, resolution=resolution)
+    sink.write(teststr)
+    sink._file
+
+    with open(sink._file.name) as f:
+        assert f.readline() == header + '\n'
+        assert f.readline() == teststr + '\n'
+
+    del sink
+    shutil.rmtree(path)
+
+
+def test_datasink_s3_buffer():
     path    = 'bucket/__test'
+    backend = Datasink.S3
+    teststr = 'hello world'
+
+    sink = Datasink(path=path, ext=ext, backend=backend)
+    sink.write(teststr)
+
+    assert sink._file.getvalue() == teststr + '\n'
+
+
+def test_datasink_s3_create():
+    path    = 'cryptle-test-bitstamp/__test'
     backend = Datasink.S3
 
     sink = Datasink(path=path, ext=ext, backend=backend)
     sink.write('hello world')
-    # nothing should have happened till this point
+    sink.close()
