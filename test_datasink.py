@@ -5,9 +5,13 @@ import datetime as dt
 from datasink import Datasink
 
 
+# default test configs
+path       = './__test'
+ext        = '.csv'
+resolution = Datasink.MINUTE
+
+
 def test_datasink_day_create_file():
-    path       = './__test'
-    ext        = '.csv'
     resolution = Datasink.DAY
     sink = Datasink(path=path, ext=ext, resolution=resolution)
     sink.write('test')
@@ -21,8 +25,6 @@ def test_datasink_day_create_file():
 
 
 def test_datasink_month_create_file():
-    path       = './__test'
-    ext        = '.csv'
     resolution = Datasink.MONTH
     sink = Datasink(path=path, ext=ext, resolution=resolution)
     sink.write('test')
@@ -36,8 +38,6 @@ def test_datasink_month_create_file():
 
 
 def test_datasink_hour_create_file():
-    path       = './__test'
-    ext        = '.csv'
     resolution = Datasink.HOUR
     sink = Datasink(path=path, ext=ext, resolution=resolution)
     sink.write('test')
@@ -51,8 +51,6 @@ def test_datasink_hour_create_file():
 
 
 def test_datasink_minute_create_file():
-    path       = './__test'
-    ext        = '.csv'
     resolution = Datasink.MINUTE
     sink = Datasink(path=path, ext=ext, resolution=resolution)
     sink.write('test')
@@ -67,7 +65,6 @@ def test_datasink_minute_create_file():
 
 def test_datasink_s3_create():
     path    = 'bucket/__test'
-    ext     = '.csv'
     backend = Datasink.S3
 
     sink = Datasink(path=path, ext=ext, backend=backend)
