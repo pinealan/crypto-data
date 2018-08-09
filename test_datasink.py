@@ -1,6 +1,9 @@
 import os
 import shutil
-import datetime as dt
+from pathlib import Path
+from datetime import datetime
+
+import pytest
 
 from datasink import Datasink
 
@@ -16,7 +19,7 @@ def test_datasink_day_create_file():
     sink = Datasink(path=path, ext=ext, resolution=resolution)
     sink.write('test')
 
-    today = dt.date.today().strftime('%Y/%m/%d')
+    today = datetime.today().strftime('%Y/%m/%d')
     assert os.path.isdir(path)
     assert os.path.isfile('{}/{}{}'.format(path, today, ext))
 
@@ -29,7 +32,7 @@ def test_datasink_month_create_file():
     sink = Datasink(path=path, ext=ext, resolution=resolution)
     sink.write('test')
 
-    month = dt.date.today().strftime('%Y/%m')
+    month = datetime.today().strftime('%Y/%m')
     assert os.path.isdir(path)
     assert os.path.isfile('{}/{}{}'.format(path, month, ext))
 
@@ -42,7 +45,7 @@ def test_datasink_hour_create_file():
     sink = Datasink(path=path, ext=ext, resolution=resolution)
     sink.write('test')
 
-    hour = dt.datetime.now().strftime('%Y/%m/%d/%H')
+    hour = datetime.now().strftime('%Y/%m/%d/%H')
     assert os.path.isdir(path)
     assert os.path.isfile('{}/{}{}'.format(path, hour, ext))
 
@@ -55,11 +58,25 @@ def test_datasink_minute_create_file():
     sink = Datasink(path=path, ext=ext, resolution=resolution)
     sink.write('test')
 
-    minute = dt.datetime.now().strftime('%Y/%m/%d/%H/%M')
+    minute = datetime.now().strftime('%Y/%m/%d/%H/%M')
     assert os.path.isdir(path)
     assert os.path.isfile('{}/{}{}'.format(path, minute, ext))
 
     del sink
+    shutil.rmtree(path)
+
+
+def test_no_overwrite_existing_file():
+    resolution        = Datasink.MONTH
+    existing_filename = '{}/{}{}'.format(path, datetime.now().strftime('/%Y/%m'), ext)
+
+    Path(existing_filename).parent.mkdir(mode=0o775, parents=True, exist_ok=True)
+    open(existing_filename, mode='w').write('hello world')
+
+    with pytest.raises(FileExistsError) as execinfo:
+        sink = Datasink(path=path, ext=ext, resolution=resolution)
+        sink.write()
+
     shutil.rmtree(path)
 
 
@@ -87,12 +104,3 @@ def test_datasink_s3_buffer():
     sink.write(teststr)
 
     assert sink._file.getvalue() == teststr + '\n'
-
-
-def test_datasink_s3_create():
-    path    = 'cryptle-test-bitstamp/__test'
-    backend = Datasink.S3
-
-    sink = Datasink(path=path, ext=ext, backend=backend)
-    sink.write('hello world')
-    sink.close()

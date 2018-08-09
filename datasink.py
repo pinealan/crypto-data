@@ -146,6 +146,11 @@ class Datasink:
 
         self._filepath = p
         if self._backend == Datasink.OS:
+
+            # Prevent ovewriting existing files
+            if p.exists():
+                raise FileExistsError
+
             p.parent.mkdir(mode=0o775, parents=True, exist_ok=True)
             # line buffering, assuming each write will be a line
             self._file = p.open(mode='w', buffering=1)
