@@ -65,7 +65,7 @@ class Datasink:
         MONTH  : '%m'
     }
 
-    _fullfilefmt = {
+    _fullfmt = {
         MINUTE : '%Y%m%d-%H%M',
         HOUR   : '%Y%m%d-%H',
         DAY    : '%Y%m%d',
@@ -81,18 +81,22 @@ class Datasink:
             fullname=False,
             resolution=DAY,
             backend=OS,
-            backend_config={}):
-        self.resolution = resolution
+            backend_config={},
+            filename=None):
+        self._res = resolution
         self._ext = ext
         self._header = header
         self._footer = footer
         self._backend = backend
-        self._fullname = fullname
 
-        # @Todo: Handle import exceptions
+        # @Todo: Better variable naming
+        self._fullname = fullname
+        self._filename = filename
+
         if backend == self.OS:
             self._path = Path(path)
         elif backend == self.S3:
+            # @Todo: Handle import exceptions
             import boto3
             pparts = Path(path).parts
             if 'aws_access_key_id' in backend_config and 'aws_secret_access_key' in backend_config:
@@ -134,17 +138,23 @@ class Datasink:
     def _getfullpath(self):
         """Returns Path object of approperiate file."""
         time = datetime.now()
-        if self._fullname:
-            subpath = time.strftime(self._dirfmt[self.resolution] + self._fullfilefmt[self.resolution])
+        if self._filename:
+            subpath = time.strftime(self._dirfmt[self._res] + self._filefmt[self._res]) + '/'
+            if isinstance(self._filename, str):
+                 subpath += self._filename
+            else:
+                 subpath += self._filename()
+        elif self._fullname:
+            subpath = time.strftime(self._dirfmt[self._res] + self._fullfmt[self._res])
         else:
-            subpath = time.strftime(self._dirfmt[self.resolution] + self._filefmt[self.resolution])
+            subpath = time.strftime(self._dirfmt[self._res] + self._filefmt[self._res])
 
         return self._path / (subpath + self._ext)
 
     def _newfile(self):
         p = self._getfullpath()
-
         self._filepath = p
+
         if self._backend == Datasink.OS:
 
             # Prevent ovewriting existing files

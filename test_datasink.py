@@ -1,4 +1,5 @@
 import os
+import time
 import shutil
 from pathlib import Path
 from datetime import datetime
@@ -11,7 +12,7 @@ from datasink import Datasink
 # default test configs
 path       = './__test'
 ext        = '.csv'
-resolution = Datasink.MINUTE
+resolution = Datasink.MONTH
 
 
 def test_datasink_day_create_file():
@@ -77,6 +78,20 @@ def test_no_overwrite_existing_file():
         sink = Datasink(path=path, ext=ext, resolution=resolution)
         sink.write()
 
+    shutil.rmtree(path)
+
+
+def test_custom_filename():
+    def const_name():
+        return 'custom'
+
+    sink = Datasink(path=path, ext=ext, resolution=resolution, filename=const_name)
+    sink.write('test')
+
+    month = datetime.now().strftime('%Y/%m/')
+    assert os.path.isfile('{}/{}{}{}'.format(path, month, const_name(), ext))
+
+    del sink
     shutil.rmtree(path)
 
 
