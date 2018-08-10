@@ -15,7 +15,7 @@ ext        = 'csv'
 resolution = Datasink.MONTH
 
 
-def test_datasink_day_create_file():
+def test_day_create_file():
     resolution = Datasink.DAY
     sink = Datasink(root=root, ext=ext, resolution=resolution)
     sink.write('test')
@@ -28,7 +28,7 @@ def test_datasink_day_create_file():
     shutil.rmtree(root)
 
 
-def test_datasink_month_create_file():
+def test_month_create_file():
     resolution = Datasink.MONTH
     sink = Datasink(root=root, ext=ext, resolution=resolution)
     sink.write('test')
@@ -41,7 +41,7 @@ def test_datasink_month_create_file():
     shutil.rmtree(root)
 
 
-def test_datasink_hour_create_file():
+def test_hour_create_file():
     resolution = Datasink.HOUR
     sink = Datasink(root=root, ext=ext, resolution=resolution)
     sink.write('test')
@@ -54,7 +54,7 @@ def test_datasink_hour_create_file():
     shutil.rmtree(root)
 
 
-def test_datasink_minute_create_file():
+def test_minute_create_file():
     resolution = Datasink.MINUTE
     sink = Datasink(root=root, ext=ext, resolution=resolution)
     sink.write('test')
@@ -95,7 +95,7 @@ def test_custom_filename():
     shutil.rmtree(root)
 
 
-def test_datasink_headers():
+def test_headers():
     header  = 'header'
     teststr = 'test'
     sink = Datasink(root=root, ext=ext, header=header, resolution=resolution)
@@ -110,7 +110,7 @@ def test_datasink_headers():
     shutil.rmtree(root)
 
 
-def test_datasink_s3_buffer():
+def test_s3_buffer():
     root    = 'bucket/__test'
     backend = Datasink.S3
     teststr = 'hello world'
