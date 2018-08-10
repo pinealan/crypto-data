@@ -10,95 +10,95 @@ from datasink import Datasink
 
 
 # default test configs
-path       = './__test'
-ext        = '.csv'
+root       = './__test'
+ext        = 'csv'
 resolution = Datasink.MONTH
 
 
 def test_datasink_day_create_file():
     resolution = Datasink.DAY
-    sink = Datasink(path=path, ext=ext, resolution=resolution)
+    sink = Datasink(root=root, ext=ext, resolution=resolution)
     sink.write('test')
 
     today = datetime.today().strftime('%Y/%m/%d')
-    assert os.path.isdir(path)
-    assert os.path.isfile('{}/{}{}'.format(path, today, ext))
+    assert os.path.isdir(root)
+    assert os.path.isfile('{}/{}.{}'.format(root, today, ext))
 
     del sink
-    shutil.rmtree(path)
+    shutil.rmtree(root)
 
 
 def test_datasink_month_create_file():
     resolution = Datasink.MONTH
-    sink = Datasink(path=path, ext=ext, resolution=resolution)
+    sink = Datasink(root=root, ext=ext, resolution=resolution)
     sink.write('test')
 
     month = datetime.today().strftime('%Y/%m')
-    assert os.path.isdir(path)
-    assert os.path.isfile('{}/{}{}'.format(path, month, ext))
+    assert os.path.isdir(root)
+    assert os.path.isfile('{}/{}.{}'.format(root, month, ext))
 
     del sink
-    shutil.rmtree(path)
+    shutil.rmtree(root)
 
 
 def test_datasink_hour_create_file():
     resolution = Datasink.HOUR
-    sink = Datasink(path=path, ext=ext, resolution=resolution)
+    sink = Datasink(root=root, ext=ext, resolution=resolution)
     sink.write('test')
 
     hour = datetime.now().strftime('%Y/%m/%d/%H')
-    assert os.path.isdir(path)
-    assert os.path.isfile('{}/{}{}'.format(path, hour, ext))
+    assert os.path.isdir(root)
+    assert os.path.isfile('{}/{}.{}'.format(root, hour, ext))
 
     del sink
-    shutil.rmtree(path)
+    shutil.rmtree(root)
 
 
 def test_datasink_minute_create_file():
     resolution = Datasink.MINUTE
-    sink = Datasink(path=path, ext=ext, resolution=resolution)
+    sink = Datasink(root=root, ext=ext, resolution=resolution)
     sink.write('test')
 
     minute = datetime.now().strftime('%Y/%m/%d/%H/%M')
-    assert os.path.isdir(path)
-    assert os.path.isfile('{}/{}{}'.format(path, minute, ext))
+    assert os.path.isdir(root)
+    assert os.path.isfile('{}/{}.{}'.format(root, minute, ext))
 
     del sink
-    shutil.rmtree(path)
+    shutil.rmtree(root)
 
 
 def test_no_overwrite_existing_file():
     resolution        = Datasink.MONTH
-    existing_filename = '{}/{}{}'.format(path, datetime.now().strftime('/%Y/%m'), ext)
+    existing_filename = '{}/{}.{}'.format(root, datetime.now().strftime('/%Y/%m'), ext)
 
     Path(existing_filename).parent.mkdir(mode=0o775, parents=True, exist_ok=True)
     open(existing_filename, mode='w').write('hello world')
 
     with pytest.raises(FileExistsError) as execinfo:
-        sink = Datasink(path=path, ext=ext, resolution=resolution)
+        sink = Datasink(root=root, ext=ext, resolution=resolution)
         sink.write()
 
-    shutil.rmtree(path)
+    shutil.rmtree(root)
 
 
 def test_custom_filename():
     def const_name():
         return 'custom'
 
-    sink = Datasink(path=path, ext=ext, resolution=resolution, filename=const_name)
+    sink = Datasink(root=root, ext=ext, resolution=resolution, filename=const_name)
     sink.write('test')
 
     month = datetime.now().strftime('%Y/%m/')
-    assert os.path.isfile('{}/{}{}{}'.format(path, month, const_name(), ext))
+    assert os.path.isfile('{}/{}{}.{}'.format(root, month, const_name(), ext))
 
     del sink
-    shutil.rmtree(path)
+    shutil.rmtree(root)
 
 
 def test_datasink_headers():
     header  = 'header'
     teststr = 'test'
-    sink = Datasink(path=path, ext=ext, header=header, resolution=resolution)
+    sink = Datasink(root=root, ext=ext, header=header, resolution=resolution)
     sink.write(teststr)
     sink._file
 
@@ -107,15 +107,15 @@ def test_datasink_headers():
         assert f.readline() == teststr + '\n'
 
     del sink
-    shutil.rmtree(path)
+    shutil.rmtree(root)
 
 
 def test_datasink_s3_buffer():
-    path    = 'bucket/__test'
+    root    = 'bucket/__test'
     backend = Datasink.S3
     teststr = 'hello world'
 
-    sink = Datasink(path=path, ext=ext, backend=backend)
+    sink = Datasink(root=root, ext=ext, backend=backend)
     sink.write(teststr)
 
     assert sink._file.getvalue() == teststr + '\n'

@@ -74,7 +74,7 @@ class Datasink:
 
     def __init__(
             self,
-            path,
+            root,
             ext='',
             header=None,
             footer=None,
@@ -94,11 +94,11 @@ class Datasink:
         self._filename = filename
 
         if backend == self.OS:
-            self._path = Path(path)
+            self._root = Path(root)
         elif backend == self.S3:
             # @Todo: Handle import exceptions
             import boto3
-            pparts = Path(path).parts
+            pparts = Path(root).parts
             if 'aws_access_key_id' in backend_config and 'aws_secret_access_key' in backend_config:
                 session = boto3.Session(
                         aws_access_key_id=backend_config['aws_access_key_id'],
@@ -106,7 +106,7 @@ class Datasink:
                 self._bucket = session.resource('s3').Bucket(pparts[0])
             else:
                 self._bucket = boto3.resource('s3').Bucket(pparts[0])
-            self._path = Path('/'.join(pparts[1:]))
+            self._root = Path('/'.join(pparts[1:]))
 
         self._newfile()
         self._addheader()
@@ -149,7 +149,7 @@ class Datasink:
         else:
             subpath = time.strftime(self._dirfmt[self._res] + self._filefmt[self._res])
 
-        return self._path / (subpath + self._ext)
+        return self._root / '{}.{}'.format(subpath, self._ext)
 
     def _newfile(self):
         p = self._getfullpath()

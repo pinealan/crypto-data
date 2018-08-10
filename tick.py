@@ -13,7 +13,7 @@ def write_tick_to_sink(record, sink):
     sink.write(msg)
 
 
-def main(*, path, pairs, resolution=Datasink.DAY, backend=None):
+def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
     header = ['id', 'price', 'amount', 'time']
     header = ','.join(header)
     ext    = '.csv'
@@ -22,7 +22,7 @@ def main(*, path, pairs, resolution=Datasink.DAY, backend=None):
     sinks = {}
     for pair in pairs:
         sinks[pair] = Datasink(
-            path='/'.join([path, pair]),
+            root='/'.join([root, pair]),
             ext=ext,
             header=header,
             resolution=resolution,
