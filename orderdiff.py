@@ -22,7 +22,7 @@ def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
     # Use csv header
     header = ['time', 'id', 'price', 'volume', 'order_type', 'diff_type', 'src_time']
     header = ','.join(header)
-    ext    = '.csv'
+    ext    = 'csv'
 
     # Prepare sinks
     sinks = {}

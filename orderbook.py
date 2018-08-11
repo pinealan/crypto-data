@@ -1,39 +1,57 @@
-import logging
+import os
+import time
 import json
+import logging
+from functools import partial
 
 import requests as req
-from bitstamp import setup_log_and_file
 
-# Logging formatter
-formatter = logging.Formatter('%(message)s')
-
-# Coins that we are going to track
-coins  = ['bch', 'btc', 'eth', 'ltc', 'xrp']
-
-fhs = {}
-lgs = {}
-for coin in coins:
-        fh, lg = setup_log_and_file('orderbook/' + coin + '.log')
-        fhs[coin] = fh
-        lgs[coin] = lg
+import bitstamp
+from datasink import Datasink
 
 
-def reqOrderbook(coin):
-    try:
-        res = req.get('https://bitstamp.net/api/v2/order_book/' + coin)
-        if res.status_code != 200:
-            raise ConnectionError(res.status_code)
-        return json.loads(res.text)
-    except ConnectionError:
-        logging.error('Request failed')
-        raise
+def write_orderbook_to_sink(book, sink):
+    sink.write(book)
 
 
-def main():
-    for coin in coins:
-        endpoint = coin + 'usd'
-        lgs[coin].info(reqOrderbook(endpoint))
+def req_orderbook(pair):
+    res = req.get('https://bitstamp.net/api/v2/order_book/{}'.format(pair))
+    if res.status_code != 200:
+        raise ConnectionError(res.status_code)
+    return res.text
+
+
+def special_name():
+    return str(int(time.time()))
+
+
+def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
+    ext    = 'json'
+
+    sinks = {}
+    for pair in pairs:
+        sinks[pair] = Datasink(
+            root='/'.join([root, pair]),
+            ext=ext,
+            resolution=resolution,
+            backend=backend,
+            filename=special_name)
+
+    while True:
+        for pair in pairs:
+            data = req_orderbook(pair)
+            write_orderbook_to_sink(data, sinks[pair])
+        time.sleep(600)
 
 
 if __name__ == '__main__':
-    main()
+    config = {
+        'pairs': ['bchusd', 'btcusd', 'ethusd', 'ltcusd', 'xrpusd', 'xrpbtc', 'ethbtc', 'bchbtc']
+    }
+
+    if os.path.isfile('book.conf'):
+        with open('book.conf') as f:
+            for line in f:
+                name, var = line.partition('=')[::2]
+                config[name.strip()] = var.strip()
+    main(**config)

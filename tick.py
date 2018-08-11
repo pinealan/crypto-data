@@ -16,7 +16,7 @@ def write_tick_to_sink(record, sink):
 def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
     header = ['id', 'price', 'amount', 'time']
     header = ','.join(header)
-    ext    = '.csv'
+    ext    = 'csv'
 
     # Prepare sinks
     sinks = {}
