@@ -1,6 +1,10 @@
 import io
+import logging
 from pathlib import Path
 from datetime import datetime
+
+
+logger = logging.getLogger(__name__)
 
 
 class Datasink:
@@ -159,11 +163,13 @@ class Datasink:
 
             # Prevent ovewriting existing files
             if p.exists():
+                logger.warning('File {} exists. Refusing to overwrite'.format(p))
                 raise FileExistsError
 
             p.parent.mkdir(mode=0o775, parents=True, exist_ok=True)
             # line buffering, assuming each write will be a line
             self._file = p.open(mode='w', buffering=1)
+            logger.debug('File {} created'.format(p))
 
         elif self._backend == Datasink.S3:
             self._file = io.StringIO()
@@ -176,3 +182,13 @@ class Datasink:
     def _addfooter(self):
         if self._footer:
             self._file._write(self._footer + '\n')
+
+
+def log_to_stdout(level=logging.WARNING, formatter=None):
+    handler = logging.StreamHandler()
+    handler.setLevel(level)
+    if formatter:
+        handler.setFormatter(formatter)
+
+    logger.addHandler(handler)
+    logger.setLevel(level)

@@ -7,7 +7,7 @@ from functools import partial
 import requests as req
 
 import bitstamp
-from datasink import Datasink
+from datasink import Datasink, log_to_stdout
 
 
 def write_orderbook_to_sink(book, sink):
@@ -27,6 +27,8 @@ def special_name():
 
 def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
     ext    = 'json'
+
+    log_to_stdout()
 
     sinks = {}
     for pair in pairs:

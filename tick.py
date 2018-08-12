@@ -1,9 +1,10 @@
 import time
 import json
+import logging
 from functools import partial
 
 import bitstamp
-from datasink import Datasink
+from datasink import Datasink, log_to_stdout
 
 
 def write_tick_to_sink(record, sink):
@@ -17,6 +18,8 @@ def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
     header = ['id', 'price', 'amount', 'time']
     header = ','.join(header)
     ext    = 'csv'
+
+    log_to_stdout(level=logging.DEBUG)
 
     # Prepare sinks
     sinks = {}

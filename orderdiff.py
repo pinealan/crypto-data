@@ -3,7 +3,7 @@ import json
 from functools import partial
 
 import bitstamp
-from datasink import Datasink
+from datasink import Datasink, log_to_stdout
 
 
 def record_diff(record, diff_type, sink):
@@ -23,6 +23,8 @@ def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
     header = ['time', 'id', 'price', 'volume', 'order_type', 'diff_type', 'src_time']
     header = ','.join(header)
     ext    = 'csv'
+
+    log_to_stdout()
 
     # Prepare sinks
     sinks = {}
