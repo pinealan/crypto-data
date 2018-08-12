@@ -31,8 +31,8 @@ def tick_to_candle(tick: pd.DataFrame, period: int) -> pd.DataFrame:
         index     = (tick.index >= itr) & (tick.index < itr + period)
         bar_ticks = tick[index]
 
-        op  = bar_ticks.min()
-        cl  = bar_ticks.max()
+        op  = bar_ticks.min().price
+        cl  = bar_ticks.max().price
         hi  = bar_ticks.price.max()
         lo  = bar_ticks.price.min()
         vol = bar_ticks.amount.sum()
