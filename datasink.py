@@ -8,21 +8,22 @@ logger = logging.getLogger(__name__)
 
 
 class Datasink:
-    """Abstraction over file management for data lake curation.
+    """Data lake abstaction with time based file management.
 
-    A directory is created to place all collected data. A date based directory
-    hierachy will be used to organise the files. By default the file resolution
-    is with day, i.e.
+    A root directory is created to place all collected data. A date denominated
+    hierachical structure will be used to organise the data files. On write to
+    an instance of stink, a new data file will be automatically created when
+    appropriate. By default the file resolution is days, i.e.
 
-        dataset/
-        |-- 2017/
-        |   |-- 01/
-        |   |   |-- 01.ext
-        |   |   |-- 02.ext
-        |   |
-        |   |-- 02/
+        dataset
+        |- 2017
+        |  |- 01
+        |  |  |- 01.csv
+        |  |  |- 02.csv
+        |  |
+        |  |- 02/
         |
-        |-- 2018/
+        |- 2018/
 
     Supported resolutions are [minute, hour, day, month].
 
@@ -36,13 +37,11 @@ class Datasink:
         path: Path to data directory. Absolute paths are prefered. Relative paths will be taken
             relative to script directory.
         ext: (optional) file extension for each file
-        header: (optional) string to be put at the top of each file
-        footer: (optional) string to be put at the bottom of each file
-        timestamp: (optional) Toggle to prepend timestamp to the data records. Defaults to false.
+        header: (optional) String to be put at the top of each file
+        footer: (optional) String to be put at the bottom of each file
+        fullname: (optional) Boolean for toggling full timestamp as filenames.
         resolution: (optional) Defaults to Datasink.DAY
         backend: (optional) Defaults to OS file system. Valid values are 'os', 's3'
-
-    @Future Creates a new data file according to one of the supported strategies.
     """
 
     # Resolutions
@@ -102,8 +101,8 @@ class Datasink:
         elif backend == self.S3:
             # @Todo: Handle import exceptions
             pparts = Path(root).parts
-            self._root = Path('/'.join(pparts[1:]))
-            self._get_s3_bucket(pparts[0], backend_config)
+            self._root   = Path('/'.join(pparts[1:]))
+            self._bucket = self._get_s3_bucket(pparts[0], backend_config)
 
         self._newfile()
         self._addheader()
@@ -115,6 +114,8 @@ class Datasink:
 
         if add_time:
             msg = '{}{}{}'.format(datetime.now().timestamp(), delimiter, msg)
+
+        logger.debug('Writing data entry to {}.'.format(self._file.name))
 
         self._file.write(msg + '\n')
 
@@ -184,9 +185,9 @@ class Datasink:
                 aws_access_key_id=config['aws_access_key_id'],
                 aws_secret_access_key=config['aws_secret_access_key']
             )
-            self._bucket = session.resource('s3').Bucket(bucket)
+            return session.resource('s3').Bucket(bucket)
         else:
-            self._bucket = boto3.resource('s3').Bucket(bucket)
+            return boto3.resource('s3').Bucket(bucket)
 
 
 def log_to_stdout(level=logging.WARNING, formatter=None):
