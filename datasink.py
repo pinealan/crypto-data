@@ -101,16 +101,9 @@ class Datasink:
             self._root = Path(root)
         elif backend == self.S3:
             # @Todo: Handle import exceptions
-            import boto3
             pparts = Path(root).parts
-            if 'aws_access_key_id' in backend_config and 'aws_secret_access_key' in backend_config:
-                session = boto3.Session(
-                        aws_access_key_id=backend_config['aws_access_key_id'],
-                        aws_secret_access_key=backend_config['aws_secret_access_key'])
-                self._bucket = session.resource('s3').Bucket(pparts[0])
-            else:
-                self._bucket = boto3.resource('s3').Bucket(pparts[0])
             self._root = Path('/'.join(pparts[1:]))
+            self._get_s3_bucket(pparts[0], backend_config)
 
         self._newfile()
         self._addheader()
@@ -182,6 +175,18 @@ class Datasink:
     def _addfooter(self):
         if self._footer:
             self._file._write(self._footer + '\n')
+
+    def _get_s3_bucket(self, bucket, config):
+        import boto3
+
+        if 'aws_access_key_id' in config and 'aws_secret_access_key' in config:
+            session = boto3.Session(
+                aws_access_key_id=config['aws_access_key_id'],
+                aws_secret_access_key=config['aws_secret_access_key']
+            )
+            self._bucket = session.resource('s3').Bucket(bucket)
+        else:
+            self._bucket = boto3.resource('s3').Bucket(bucket)
 
 
 def log_to_stdout(level=logging.WARNING, formatter=None):
