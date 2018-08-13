@@ -40,11 +40,15 @@ def tick_to_candle(tick: pd.DataFrame, period: int) -> pd.DataFrame:
         index     = (tick.index >= itr) & (tick.index < itr + period)
         bar_ticks = tick[index]
 
-        op  = bar_ticks.min().price
-        cl  = bar_ticks.max().price
-        hi  = bar_ticks.price.max()
-        lo  = bar_ticks.price.min()
-        vol = bar_ticks.amount.sum()
+        if bar_ticks.empty:
+            op = cl = hi = lo = bars[-1][1]
+            vol = 0
+        else:
+            op  = bar_ticks.min().price
+            cl  = bar_ticks.max().price
+            hi  = bar_ticks.price.max()
+            lo  = bar_ticks.price.min()
+            vol = bar_ticks.amount.sum()
         ts  = itr
 
         bars.append((op, cl, hi, lo, vol, ts))
@@ -53,7 +57,7 @@ def tick_to_candle(tick: pd.DataFrame, period: int) -> pd.DataFrame:
 
 
 def candle_to_csv(data, fname):
-    data.to_csv(fname)
+    data.to_csv(fname, index=False)
 
 
 def parse_cmdline_args(args):
