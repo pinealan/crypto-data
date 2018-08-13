@@ -1,7 +1,16 @@
+#!/usr/bin/python3
 import sys
 
 import numpy as np
 import pandas as pd
+
+
+def print_help():
+    usage = [
+        'Usage: convert <command>',
+        ''
+    ]
+    print('\n'.join(usage))
 
 
 def round_down_nearest(n, precision: int):
@@ -47,8 +56,38 @@ def candle_to_csv(data, fname):
     data.to_csv(fname)
 
 
+def parse_cmdline_args(args):
+    kwargs = {}
+    for kw, arg in zip(args[::2], args[1::2]):
+        if kw.startswith('--'):
+            if arg.isdigit():
+                kwargs[kw[2:]] = int(arg)
+            else:
+                kwargs[kw[2:]] = arg
+        else:
+            raise ValueError('Unrecognised argument format')
+    return kwargs
+
+
 def main():
-    pass
+    try:
+        command = sys.argv[1]
+    except IndexError:
+        print_help()
+        return
+
+    kwargs = parse_cmdline_args(sys.argv[2:])
+    if command == 'tick_to_candle':
+        tick   = kwargs['tick']
+        period = kwargs['period']
+        fname  = kwargs['fname']
+
+        tick   = tick_from_json(tick)
+        candle = tick_to_candle(tick, period)
+        candle_to_csv(candle, fname)
+    else:
+        print_help()
+        exit(1)
 
 
 if __name__ == "__main__":
