@@ -48,7 +48,10 @@ def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
 
 if __name__ == '__main__':
     config = {
-        'pairs': ['bchusd', 'btcusd', 'ethusd', 'ltcusd', 'xrpusd', 'xrpbtc', 'ethbtc', 'bchbtc']
+        'root': 'cryptle-exchange/bitstamp-book',
+        'backend': 'os',
+        'resolution': 'day',
+        'pairs': ['btcusd']
     }
 
     if os.path.isfile('book.conf'):

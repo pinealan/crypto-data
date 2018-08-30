@@ -48,7 +48,10 @@ def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
 if __name__ == '__main__':
     # default config
     config = {
-        'pairs': ['bchusd', 'btcusd', 'ethusd', 'ltcusd', 'xrpusd'],
+        'root': 'cryptle-exchange/bitstamp-diff',
+        'backend': 'os',
+        'resolution': 'min',
+        'pairs': ['btcusd'],
     }
     with open('diff.conf') as f:
         for line in f:

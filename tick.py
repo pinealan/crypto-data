@@ -40,7 +40,10 @@ def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
 
 if __name__ == '__main__':
     config = {
-        'pairs': ['bchusd', 'btcusd', 'ethusd', 'ltcusd', 'xrpusd']
+        'root': 'cryptle-exchange/bitstamp-tick',
+        'backend': 'os',
+        'resolution': 'min',
+        'pairs': ['btcusd']
     }
     with open('tick.conf') as f:
         for line in f:
