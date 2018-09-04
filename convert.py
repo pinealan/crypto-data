@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import sys
+import logging
 
 import numpy as np
 import pandas as pd
@@ -69,8 +70,19 @@ def parse_cmdline_args(args):
             else:
                 kwargs[kw[2:]] = arg
         else:
-            raise ValueError('Unrecognised argument format')
+            logging.error("{} {}".format(kw, arg))
+            raise ValueError('Arguments must be in "--key value" format')
     return kwargs
+
+
+def handle_tick_to_candle(kwargs):
+    tick   = kwargs['tick']
+    period = kwargs['period']
+    fname  = kwargs['fname']
+
+    tick   = tick_from_json(tick)
+    candle = tick_to_candle(tick, period)
+    candle_to_csv(candle, fname)
 
 
 def main():
@@ -80,19 +92,18 @@ def main():
         print_help()
         return
 
-    kwargs = parse_cmdline_args(sys.argv[2:])
-    if command == 'tick_to_candle':
-        tick   = kwargs['tick']
-        period = kwargs['period']
-        fname  = kwargs['fname']
+    logging.debug(sys.argv)
 
-        tick   = tick_from_json(tick)
-        candle = tick_to_candle(tick, period)
-        candle_to_csv(candle, fname)
-    else:
+    kwargs = parse_cmdline_args(sys.argv[1:])
+    if command == 'help':
         print_help()
         exit(1)
+    elif command == 'tick_to_candle':
+        handle_tick_to_candle(kwargs)
+    else:
+        handle_tick_to_candle(kwargs)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()
