@@ -6,7 +6,7 @@ from functools import partial
 
 import requests as req
 
-import bitstamp
+from feed import bitstamp
 from datasink import Datasink, log_to_stdout
 
 

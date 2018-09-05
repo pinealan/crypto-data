@@ -2,7 +2,7 @@ import time
 import json
 from functools import partial
 
-import bitstamp
+from feed import bitstamp
 from datasink import Datasink, log_to_stdout
 
 

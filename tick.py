@@ -3,7 +3,7 @@ import json
 import logging
 from functools import partial
 
-import bitstamp
+from feed import bitstamp
 from datasink import Datasink, log_to_stdout
 
 
