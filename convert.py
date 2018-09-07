@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import sys
 import logging
+import traceback
 
 import numpy as np
 import pandas as pd
@@ -17,8 +18,11 @@ def print_help():
         '   --in <input_file>',
         '   --out <output_file>',
         '',
+        'Options --from=*.csv',
+        '   [--header <col0,col1,col2,...>]',
+        '',
         'Options --to=candle.*',
-        '   [--period <seconds>]',
+        '   --period <seconds>',
     ]
     print('\n'.join(usage))
 
@@ -27,8 +31,15 @@ def round_down_nearest(n, precision: int):
     return (n // precision) * precision
 
 
-def tick_from_csv(fname):
-    return pd.read_csv(fname)
+def tick_from_csv(fname, header=None):
+    return pd.read_csv(fname, header=header)
+
+
+def _tick_from_csv(fname, kwargs):
+    header = None
+    if 'header' in kwargs:
+        header = kwargs['header'].split(',')
+    tick_from_csv(fname, header=header)
 
 
 def tick_from_json(fname):
@@ -126,22 +137,36 @@ def parse_format(fmt):
 
 
 def main():
+    if len(sys.argv) == 1:
+        print_help()
+        return
+
     kwargs = parse_cmdline_args(sys.argv[1:])
+
+    logging.basicConfig(level=logging.INFO)
     logging.debug(kwargs)
 
     try:
         in_data, in_fmt = parse_format(kwargs['from'])
         out_data, out_fmt = parse_format(kwargs['to'])
+
         file = kwargs['in']
         out  = kwargs['out']
+
         data = read_data(file, in_data, in_fmt)
-        data = convert(data, in_data, out_data, kwargs)
+        data = convert(data, in_data, out_data)
         write_data(data, out, out_data, out_fmt)
-    except Exception as e:
+    except ValueError as e:
+        _, _, tb = sys.exc_info()
+        traceback.print_tb(tb)
         print(e.__repr__())
+    except KeyError as e:
+        print(e.__repr__())
+        print_help()
+    except:
+        print('Uncaught error')
         print_help()
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     main()
