@@ -1,13 +1,18 @@
 import os
+import sys
 import json
 import time
-import threading
 import logging
+import traceback
 from enum import Enum
+from threading import Thread
 
 import websocket
 
+from .exception import *
 
+
+log = logging.getLogger(__name__)
 WSSURL = 'wss://api.bitfinex.com/ws/2'
 
 
@@ -33,6 +38,10 @@ def parse_evt(evt):
     return channel, kwargs
 
 
+def parse_raw_msg(msg):
+    return json.loads(raw_msg)
+
+
 class ErrorCode(Enum):
     ERR_UNK          = 10000
     ERR_GENERIC      = 10001
@@ -56,10 +65,35 @@ class ErrorCode(Enum):
 
 
 class BitfinexFeed:
-    def __init__(self):
+    """Websocket datafeed for Bitfinex.
+
+    Attributes:
+        connected: Connection status.
+    """
+    def __init__(self, *args, **options):
         self._subscribed_channels = {}
         self._callbacks = {}
-        self._ws = websocket.create_connection(WSSURL)
+        self._recv_thread = None
+        self._ws = websocket.WebSocket(*args, **options)
+
+    # ----------
+    # Public interface
+    # ----------
+    def connect(self, **options):
+        if self.connected:
+            return
+        self._ws.connect(WSSURL, **options)
+        self._recv_thread = Thread(target=self._recvForever)
+        self._recv_thread.setDaemon(True)
+        self.running = True
+        self._recv_thread.start()
+
+    def close(self):
+        if self.connected:
+            if self._recv_thread.is_alive():
+                self.running = False
+                self._recv_thread.join()
+            self._ws.close()
 
     def on(self, evt, callback):
         """Bind a callback to an event.
@@ -68,45 +102,72 @@ class BitfinexFeed:
             evt: The event to listen for.
             callback: The callback function to be binded.
         """
-        if not self._ws.connected:
+        if not self.connected:
             raise ConnectionClosed()
-
         channel, kwargs = parse_evt(evt)
-
         msg = {'event': 'subscribe', 'channel': channel}.update(kwargs)
         self._send(msg)
 
+    @property
+    def connected(self):
+        return self._ws.connected
+
+    # ----------
+    # Send outgoing messages
+    # ----------
     def _send(self, msg):
         raw_msg = json.dumps(msg)
         self._ws.send(raw_msg)
 
+    # ----------
+    # Process incoming messages
+    # ----------
+    def _recvForever(self):
+        """Main loop to receive incoming socket messages."""
+        while self.connected and self.running:
+            try:
+                try:
+                    data = self._ws.recv()
+                except websocket.WebSocketConnectionClosedException:
+                    # restart?
+                    log.error('Websocket closed')
+                    break
+                except websocket.WebSocketTimeoutException:
+                    log.error('Websocket timeout')
+                    continue
+                else:
+                    msg = parse_raw_msg(data)
+                    if isinstance(wsmsg, dict):
+                        self._handleMessage(wsmsg)
+                    elif isinstance(wsmsg, list):
+                        self._handleUpdate(wsmsg)
+
+            # Print traceback for all errors in incoming thread
+            except Exception as e:
+                _, _, tb = sys.exc_info()
+                traceback.print_tb(tb)
+            else:
+                log.debug('WS Message: {}'.format(raw_msg))
+
     def _handleMessage(self, msg):
         event = msg['event']
-        if event == 'subscribed':
+        if event == 'info':
+            return
+        elif event == 'subscribed':
             channel_name = msg['channel']
             channel_id   = msg['chanId']
             self._subscribed_channels[channel_id] = channel_name
         elif event == 'error':
-            self._error(msg['code'], msg['msg'])
+            code = msg['code']
+            msg = msg['msg']
+            if code not in ErrorCode:
+                log.error('{} Unknown error'.format(code))
+            else:
+                log.error('{}'.format(code))
         else:
-            raise BadResponse()
+            raise BadMessage(msg)
 
     def _handleUpdate(self, msg):
         channel_id = msg.pop(0)
         cb = self._callbacks[channel_id]
         cb(*msg)
-
-    def _error(self, code, msg):
-        if code not in ErrorCode:
-            logging.error('Error: {} Unknown error'.format(code))
-        else:
-            logging.error('Error: {}'.format(code))
-
-    def _onmessage(self, raw_res):
-        res = json.loads(raw_res)
-        if isinstance(res, dict):
-            self._handleMessage(res)
-        elif isinstance(res, list):
-            self._handleUpdate(res)
-        else:
-            raise BadResponse()

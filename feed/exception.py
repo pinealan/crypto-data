@@ -4,7 +4,7 @@ class DatafeedException(Exception):
 class ConnectionClosed(DatafeedException):
     pass
 
-class BadResponse(DatafeedException):
+class BadMessage(DatafeedException):
     pass
 
 class BadEvent(DatafeedException):
