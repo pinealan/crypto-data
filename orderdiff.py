@@ -1,3 +1,4 @@
+import os
 import time
 import json
 from functools import partial
@@ -53,8 +54,9 @@ if __name__ == '__main__':
         'resolution': 'min',
         'pairs': ['btcusd'],
     }
-    with open('diff.conf') as f:
-        for line in f:
-            name, var = line.partition('=')[::2]
-            config[name.strip()] = var.strip()
+    if os.path.isfile('diff.conf'):
+        with open('diff.conf') as f:
+            for line in f:
+                name, var = line.partition('=')[::2]
+                config[name.strip()] = var.strip()
     main(**config)

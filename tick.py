@@ -1,3 +1,4 @@
+import os
 import time
 import json
 import logging
@@ -45,8 +46,9 @@ if __name__ == '__main__':
         'resolution': 'min',
         'pairs': ['btcusd']
     }
-    with open('tick.conf') as f:
-        for line in f:
-            name, var = line.partition('=')[::2]
-            config[name.strip()] = var.strip()
+    if os.path.isfile('tick.conf'):
+        with open('tick.conf') as f:
+            for line in f:
+                name, var = line.partition('=')[::2]
+                config[name.strip()] = var.strip()
     main(**config)
