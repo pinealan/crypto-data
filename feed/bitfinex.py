@@ -8,7 +8,7 @@ import traceback
 from enum import Enum
 from threading import Thread
 
-import websocket
+import websocket as ws
 
 from .exception import *
 
@@ -18,7 +18,7 @@ WSSURL = 'wss://api.bitfinex.com/ws/2'
 
 
 def parse_evt(evt):
-    """Parse string representation of market event."""
+    """Parse string repr of market event into dict repr with named keys for bitfinex."""
     channel, *params = evt.split(':')
     kwargs = {}
 
@@ -41,6 +41,26 @@ def parse_evt(evt):
 
 def parse_raw_msg(msg):
     return json.loads(msg)
+
+
+def parse_subscribed_msg(msg: dict):
+    """Parse subscribed messages from bitfinex into string repr."""
+    name = msg['channel']
+    cid  = msg['chanId']
+    evt  = ''
+
+    # @Todo: Implement all events
+    if name == 'trades':
+        evt = 'trades:{}'.format(msg['symbol'])
+    elif name == 'ticker':
+        pass
+    elif name == 'book':
+        pass
+    elif name == 'rawbook':
+        pass
+    elif name == 'candle':
+        pass
+    return cid, evt
 
 
 class ErrorCode(Enum):
@@ -72,16 +92,23 @@ class BitfinexFeed:
         connected: Connection status.
     """
     def __init__(self, *args, **options):
-        self._subscribed_channels = {}
+        # { Channel_ID: event, ... }
+        self._id_event = {}
+
+        # { event: [cb0, cb1, ...], ... }
         self._callbacks = {}
+
+        # Incoming messages processing thread
         self._recv_thread = None
-        self._ws = websocket.WebSocket(*args, **options)
+
+        self._ws = ws.WebSocket(*args, **options)
         self._ws.settimeout(3)
 
     # ----------
     # Public interface
     # ----------
     def connect(self, **options):
+        """Connect to Bitfinex push data."""
         if self.connected:
             return
 
@@ -92,6 +119,7 @@ class BitfinexFeed:
         self._recv_thread.start()
 
     def close(self):
+        """Disconnect from Bitfinex."""
         if self.connected:
             if self._recv_thread.is_alive():
                 self.running = False
@@ -107,9 +135,18 @@ class BitfinexFeed:
         """
         if not self.connected:
             raise ConnectionClosed()
-        channel, kwargs = parse_evt(evt)
-        msg = {'event': 'subscribe', 'channel': channel}.update(kwargs)
+
+        if evt not in self._callbacks:
+            _log.info('New event callback:{}'.format(evt))
+            self._callbacks[evt] = []
+            channel, kwargs = parse_evt(evt)
+
+        msg = {'event': 'subscribe', 'channel': channel}
+        msg.update(kwargs)
+
+        self._callbacks[evt].append(callback)
         self._send(msg)
+        _log.info('Register callback: {}'.format(evt))
 
     @property
     def connected(self):
@@ -138,11 +175,11 @@ class BitfinexFeed:
             try:
                 try:
                     raw_msg = self._ws.recv()
-                except websocket.WebSocketConnectionClosedException:
+                except ws.WebSocketConnectionClosedException:
                     # @Todo: restart?
                     _log.error('Websocket closed')
                     break
-                except socket.timeout:
+                except ws.WebSocketTimeoutException:
                     _log.debug('Socket timeout')
                     continue
                 else:
@@ -154,21 +191,22 @@ class BitfinexFeed:
 
             # @Todo Log traceback for uncaught errors in receiver thread
             except Exception as e:
+                _, _, tb = sys.exc_info()
+                traceback.print_tb(tb)
                 _log.error('(callback error):{}:{}'.format(type(e).__name__, e))
-                #_, _, tb = sys.exc_info()
-                #traceback.print_tb(tb)
             else:
                 _log.debug('Received: {}'.format(raw_msg))
 
     def _handleMessage(self, msg):
-        event = msg['event']
-        if event == 'info':
+        bfx_event = msg['event']
+
+        if bfx_event == 'info':
+            # @Todo logging
             return
-        elif event == 'subscribed':
-            channel_name = msg['channel']
-            channel_id   = msg['chanId']
-            self._subscribed_channels[channel_id] = channel_name
-        elif event == 'error':
+        elif bfx_event == 'subscribed':
+            cid, evt = parse_subscribed_msg(msg)
+            self._id_event[cid] = evt
+        elif bfx_event == 'error':
             code = msg['code']
             msg = msg['msg']
             if code not in ErrorCode:
@@ -179,6 +217,10 @@ class BitfinexFeed:
             raise BadMessage(msg)
 
     def _handleUpdate(self, msg):
-        channel_id = msg.pop(0)
-        cb = self._callbacks[channel_id]
-        cb(*msg)
+        # Ignore heartbeat
+        if msg[1] == 'hb':
+            return
+        cid = msg.pop(0)
+        evt = self._id_event[cid]
+        for cb in self._callbacks[evt]:
+            cb(*msg)

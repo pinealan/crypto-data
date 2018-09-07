@@ -31,4 +31,5 @@ def test_bifinex_on_trade():
     feed = bfx.BitfinexFeed()
     feed.connect()
     feed.on('trades:tBTCUSD', print)
+    time.sleep(5)
     feed.close()
