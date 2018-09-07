@@ -8,14 +8,27 @@ import pandas as pd
 
 def print_help():
     usage = [
-        'Usage: convert <command>',
-        ''
+        'Usage:',
+        '   convert --from tick.csv --to candle.csv --in btctick.csv --out btccandle.csv',
+        '',
+        'Arguments:',
+        '   --from <input_data.file_format>',
+        '   --to <output_data.file_format>',
+        '   --in <input_file>',
+        '   --out <output_file>',
+        '',
+        'Options --to=candle.*',
+        '   [--period <seconds>]',
     ]
     print('\n'.join(usage))
 
 
 def round_down_nearest(n, precision: int):
     return (n // precision) * precision
+
+
+def tick_from_csv(fname):
+    return pd.read_csv(fname)
 
 
 def tick_from_json(fname):
@@ -57,8 +70,41 @@ def tick_to_candle(tick: pd.DataFrame, period: int) -> pd.DataFrame:
     return pd.DataFrame(bars, columns=['open', 'close', 'hi', 'low', 'volume', 'timestamp'])
 
 
+def _tick_to_candle(tick, kwargs):
+    period = kwargs['period']
+    return tick_to_candle(tick, period)
+
+
 def candle_to_csv(data, fname):
     data.to_csv(fname, index=False)
+
+
+_read_table = {
+        ('tick', 'csv'): tick_from_csv,
+        ('tick', 'json'): tick_from_json,
+}
+
+
+_convert_table = {
+        ('tick', 'candle'): _tick_to_candle,
+}
+
+
+_write_table = {
+        ('candle', 'csv'): candle_to_csv,
+}
+
+
+def read_data(file, data_fmt, file_fmt):
+    return _read_table[(data_fmt, file_fmt)](file)
+
+
+def convert(data, in_data_fmt, out_data_fmt, kwargs):
+    return _convert_table[(in_data_fmt, out_data_fmt)](data, kwargs)
+
+
+def write_data(data, file, data_fmt, file_fmt):
+    _write_table[(data_fmt, file_fmt)](data, file)
 
 
 def parse_cmdline_args(args):
@@ -75,33 +121,25 @@ def parse_cmdline_args(args):
     return kwargs
 
 
-def handle_tick_to_candle(kwargs):
-    tick   = kwargs['tick']
-    period = kwargs['period']
-    fname  = kwargs['fname']
-
-    tick   = tick_from_json(tick)
-    candle = tick_to_candle(tick, period)
-    candle_to_csv(candle, fname)
+def parse_format(fmt):
+    return fmt.split('.')
 
 
 def main():
-    try:
-        command = sys.argv[1]
-    except IndexError:
-        print_help()
-        return
-
-    logging.debug(sys.argv)
-
     kwargs = parse_cmdline_args(sys.argv[1:])
-    if command == 'help':
+    logging.debug(kwargs)
+
+    try:
+        in_data, in_fmt = parse_format(kwargs['from'])
+        out_data, out_fmt = parse_format(kwargs['to'])
+        file = kwargs['in']
+        out  = kwargs['out']
+        data = read_data(file, in_data, in_fmt)
+        data = convert(data, in_data, out_data, kwargs)
+        write_data(data, out, out_data, out_fmt)
+    except Exception as e:
+        print(e.__repr__())
         print_help()
-        exit(1)
-    elif command == 'tick_to_candle':
-        handle_tick_to_candle(kwargs)
-    else:
-        handle_tick_to_candle(kwargs)
 
 
 if __name__ == "__main__":
