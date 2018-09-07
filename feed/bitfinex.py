@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import time
+import socket
 import logging
 import traceback
 from enum import Enum
@@ -75,6 +76,7 @@ class BitfinexFeed:
         self._callbacks = {}
         self._recv_thread = None
         self._ws = websocket.WebSocket(*args, **options)
+        self._ws.settimeout(3)
 
     # ----------
     # Public interface
@@ -131,17 +133,17 @@ class BitfinexFeed:
         raw string messages are then parsed into python objects and passed onto
         the appropriate methods for the corresponding types of message.
         """
-        logging.debug('Incoming thread started')
+        _log.info('Receiver thread started')
         while self.connected and self.running:
             try:
                 try:
                     raw_msg = self._ws.recv()
                 except websocket.WebSocketConnectionClosedException:
-                    # restart?
+                    # @Todo: restart?
                     _log.error('Websocket closed')
                     break
-                except websocket.WebSocketTimeoutException:
-                    _log.error('Websocket timeout')
+                except socket.timeout:
+                    _log.debug('Socket timeout')
                     continue
                 else:
                     wsmsg = parse_raw_msg(raw_msg)
@@ -150,11 +152,11 @@ class BitfinexFeed:
                     elif isinstance(wsmsg, list):
                         self._handleUpdate(wsmsg)
 
-            # Print traceback for all errors in incoming thread
+            # @Todo Log traceback for uncaught errors in receiver thread
             except Exception as e:
-                _log.error('error from callback {}'.format(e))
-                _, _, tb = sys.exc_info()
-                traceback.print_tb(tb)
+                _log.error('(callback error):{}:{}'.format(type(e).__name__, e))
+                #_, _, tb = sys.exc_info()
+                #traceback.print_tb(tb)
             else:
                 _log.debug('Received: {}'.format(raw_msg))
 
