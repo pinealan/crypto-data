@@ -12,7 +12,7 @@ import websocket
 from .exception import *
 
 
-log = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 WSSURL = 'wss://api.bitfinex.com/ws/2'
 
 
@@ -39,7 +39,7 @@ def parse_evt(evt):
 
 
 def parse_raw_msg(msg):
-    return json.loads(raw_msg)
+    return json.loads(msg)
 
 
 class ErrorCode(Enum):
@@ -82,6 +82,7 @@ class BitfinexFeed:
     def connect(self, **options):
         if self.connected:
             return
+
         self._ws.connect(WSSURL, **options)
         self._recv_thread = Thread(target=self._recvForever)
         self._recv_thread.setDaemon(True)
@@ -118,25 +119,32 @@ class BitfinexFeed:
     def _send(self, msg):
         raw_msg = json.dumps(msg)
         self._ws.send(raw_msg)
+        _log.debug('Sent: {}'.format(raw_msg))
 
     # ----------
     # Process incoming messages
     # ----------
     def _recvForever(self):
-        """Main loop to receive incoming socket messages."""
+        """Main loop to receive incoming socket messages.
+
+        Messages are received using the blocking WebSocket.recv() method. The
+        raw string messages are then parsed into python objects and passed onto
+        the appropriate methods for the corresponding types of message.
+        """
+        logging.debug('Incoming thread started')
         while self.connected and self.running:
             try:
                 try:
-                    data = self._ws.recv()
+                    raw_msg = self._ws.recv()
                 except websocket.WebSocketConnectionClosedException:
                     # restart?
-                    log.error('Websocket closed')
+                    _log.error('Websocket closed')
                     break
                 except websocket.WebSocketTimeoutException:
-                    log.error('Websocket timeout')
+                    _log.error('Websocket timeout')
                     continue
                 else:
-                    msg = parse_raw_msg(data)
+                    wsmsg = parse_raw_msg(raw_msg)
                     if isinstance(wsmsg, dict):
                         self._handleMessage(wsmsg)
                     elif isinstance(wsmsg, list):
@@ -144,10 +152,11 @@ class BitfinexFeed:
 
             # Print traceback for all errors in incoming thread
             except Exception as e:
+                _log.error('error from callback {}'.format(e))
                 _, _, tb = sys.exc_info()
                 traceback.print_tb(tb)
             else:
-                log.debug('WS Message: {}'.format(raw_msg))
+                _log.debug('Received: {}'.format(raw_msg))
 
     def _handleMessage(self, msg):
         event = msg['event']
@@ -161,9 +170,9 @@ class BitfinexFeed:
             code = msg['code']
             msg = msg['msg']
             if code not in ErrorCode:
-                log.error('{} Unknown error'.format(code))
+                _log.error('{} Unknown error'.format(code))
             else:
-                log.error('{}'.format(code))
+                _log.error('{}'.format(code))
         else:
             raise BadMessage(msg)
 
