@@ -101,8 +101,8 @@ class Datasink:
         elif backend == self.S3:
             # @Todo: Handle import exceptions
             pparts = Path(root).parts
-            self._root   = Path('/'.join(pparts[1:]))
             self._bucket = self._get_s3_bucket(pparts[0], backend_config)
+            self._root   = Path('/'.join(pparts[1:]))
 
         self._newfile()
         self._addheader()
@@ -115,7 +115,7 @@ class Datasink:
         if add_time:
             msg = '{}{}{}'.format(datetime.now().timestamp(), delimiter, msg)
 
-        logger.debug('Writing data entry to {}.'.format(self._file.name))
+        logger.debug('Writing data entry to {}.'.format(self._filepath))
 
         self._file.write(msg + '\n')
 
@@ -163,11 +163,12 @@ class Datasink:
             p.parent.mkdir(mode=0o775, parents=True, exist_ok=True)
             # line buffering, assuming each write will be a line
             self._file = p.open(mode='w', buffering=1)
-            logger.debug('File {} created'.format(p))
+            logger.debug('Create local file {}'.format(p))
 
         elif self._backend == Datasink.S3:
             self._file = io.StringIO()
             self._obj = self._bucket.Object(str(p))
+            logger.debug('Create S3 object {}'.format(p))
 
     def _addheader(self):
         if self._header:
