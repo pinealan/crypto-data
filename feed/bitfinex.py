@@ -31,8 +31,10 @@ def parse_evt(evt):
         pass
     elif channel == 'rawbook':
         pass
-    elif channel == 'candle':
-        pass
+    elif channel == 'candles':
+        symbol = params[0]
+        period = params[1]
+        kwargs['key'] = 'trade:{}:{}'.format(symbol, period)
     else:
         raise BadEvent(evt)
 
@@ -58,8 +60,10 @@ def parse_subscribed_msg(msg: dict):
         pass
     elif name == 'rawbook':
         pass
-    elif name == 'candle':
-        pass
+    elif name == 'candles':
+        _, symbol, period = msg['key'].split(':')
+        evt = 'candles:{}:{}'.format(symbol, period)
+
     return cid, evt
 
 
@@ -112,7 +116,10 @@ class BitfinexFeed:
         if self.connected:
             return
 
+        _log.info('Attempting to connect')
         self._ws.connect(WSSURL, **options)
+        _log.info('Connection establishedd')
+
         self._recv_thread = Thread(target=self._recvForever)
         self._recv_thread.setDaemon(True)
         self.running = True
@@ -137,16 +144,16 @@ class BitfinexFeed:
             raise ConnectionClosed()
 
         if evt not in self._callbacks:
-            _log.info('New event callback:{}'.format(evt))
             self._callbacks[evt] = []
             channel, kwargs = parse_evt(evt)
+            msg = {'event': 'subscribe', 'channel': channel}
+            msg.update(kwargs)
 
-        msg = {'event': 'subscribe', 'channel': channel}
-        msg.update(kwargs)
+            _log.info('Subscribing: {}'.format(evt))
+            self._send(msg)
 
         self._callbacks[evt].append(callback)
-        self._send(msg)
-        _log.info('Register callback: {}'.format(evt))
+        _log.info('Add callback: "{}"'.format(evt))
 
     @property
     def connected(self):
@@ -177,10 +184,9 @@ class BitfinexFeed:
                     raw_msg = self._ws.recv()
                 except ws.WebSocketConnectionClosedException:
                     # @Todo: restart?
-                    _log.error('Websocket closed')
+                    _log.warning('Websocket closed')
                     break
                 except ws.WebSocketTimeoutException:
-                    _log.debug('Socket timeout')
                     continue
                 else:
                     wsmsg = parse_raw_msg(raw_msg)
@@ -189,11 +195,11 @@ class BitfinexFeed:
                     elif isinstance(wsmsg, list):
                         self._handleUpdate(wsmsg)
 
-            # @Todo Log traceback for uncaught errors in receiver thread
             except Exception as e:
                 _, _, tb = sys.exc_info()
                 traceback.print_tb(tb)
                 _log.error('(callback error):{}:{}'.format(type(e).__name__, e))
+
             else:
                 _log.debug('Received: {}'.format(raw_msg))
 
@@ -201,11 +207,13 @@ class BitfinexFeed:
         bfx_event = msg['event']
 
         if bfx_event == 'info':
-            # @Todo logging
-            return
+            _log.info('Connection acknowledged')
+
         elif bfx_event == 'subscribed':
             cid, evt = parse_subscribed_msg(msg)
             self._id_event[cid] = evt
+            _log.info('Subscription success "{}":{}'.format(evt, cid))
+
         elif bfx_event == 'error':
             code = msg['code']
             msg = msg['msg']
@@ -219,6 +227,7 @@ class BitfinexFeed:
     def _handleUpdate(self, msg):
         # Ignore heartbeat
         if msg[1] == 'hb':
+            _log.info('Heartbeat {}'.format(msg[0]))
             return
         cid = msg.pop(0)
         evt = self._id_event[cid]

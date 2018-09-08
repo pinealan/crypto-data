@@ -21,6 +21,16 @@ def test_bitfinex_parse_evt():
     assert kwargs == {'symbol': 'tBTCUSD'}
 
 
+def test_bitfinex_encode_candles():
+    evt = 'candles:tBTCUSD:1m'
+    assert bfx.parse_evt(evt) == ('candles', {'key': 'trades:tBTCUSD:1m'})
+
+
+def test_bitfinex_decode_candles():
+    msg = {'channel': 'candles',  'chanId': 1, 'key': 'trade:tBTCUSD:1m'}
+    assert bfx.parse_subscribed_msg(msg) == (1, 'candles:tBTCUSD:1m')
+
+
 def test_check_connection():
     feed = bfx.BitfinexFeed()
     with pytest.raises(ConnectionClosed):
