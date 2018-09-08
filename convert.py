@@ -31,37 +31,38 @@ def round_down_nearest(n, precision: int):
     return (n // precision) * precision
 
 
-def tick_from_csv(fname, header=None):
-    return pd.read_csv(fname, header=header)
+def tick_from_csv(fname, **kwargs):
+    return pd.read_csv(fname, **kwargs)
 
 
 def _tick_from_csv(fname, kwargs):
     header = None
     if 'header' in kwargs:
         header = kwargs['header'].split(',')
-    tick_from_csv(fname, header=header)
+    return tick_from_csv(fname, names=header)
 
 
 def tick_from_json(fname):
     return pd.read_json(open(fname), convert_dates=False, lines=True)
 
 
+def _tick_from_json(fname, kwargs):
+    return tick_from_json(fname)
+
+
 def tick_to_candle(tick: pd.DataFrame, period: int) -> pd.DataFrame:
     """Convert tick data to candle data."""
     tick = tick.set_index('timestamp') \
-               .drop('buy_order_id', axis=1) \
-               .drop('sell_order_id', axis=1) \
-               .drop('id', axis=1) \
-               .drop('price_str', axis=1) \
-               .drop('amount_str', axis=1) \
-               .drop('type', axis=1) \
                .sort_index()
 
     start = round_down_nearest(tick.index.min(), period)
     end   = round_down_nearest(tick.index.max(), period) + period
     bars  = []
 
-    for itr in range(start, end, period):
+    for idx, itr in enumerate(range(start, end, period)):
+        if not (idx % 10):
+            logging.info('Collected {} candles'.format(idx))
+
         index     = (tick.index >= itr) & (tick.index < itr + period)
         bar_ticks = tick[index]
 
@@ -91,8 +92,8 @@ def candle_to_csv(data, fname):
 
 
 _read_table = {
-        ('tick', 'csv'): tick_from_csv,
-        ('tick', 'json'): tick_from_json,
+        ('tick', 'csv'): _tick_from_csv,
+        ('tick', 'json'): _tick_from_json,
 }
 
 
@@ -106,8 +107,8 @@ _write_table = {
 }
 
 
-def read_data(file, data_fmt, file_fmt):
-    return _read_table[(data_fmt, file_fmt)](file)
+def read_data(file, data_fmt, file_fmt, kwargs):
+    return _read_table[(data_fmt, file_fmt)](file, kwargs)
 
 
 def convert(data, in_data_fmt, out_data_fmt, kwargs):
@@ -153,19 +154,20 @@ def main():
         file = kwargs['in']
         out  = kwargs['out']
 
-        data = read_data(file, in_data, in_fmt)
-        data = convert(data, in_data, out_data)
+        data = read_data(file, in_data, in_fmt, kwargs)
+        data = convert(data, in_data, out_data, kwargs)
         write_data(data, out, out_data, out_fmt)
     except ValueError as e:
         _, _, tb = sys.exc_info()
         traceback.print_tb(tb)
-        print(e.__repr__())
+        logging.error(e.__repr__())
     except KeyError as e:
-        print(e.__repr__())
+        # @Todo: Do something?
         print_help()
-    except:
-        print('Uncaught error')
+        raise
+    except Exception as e:
         print_help()
+        raise
 
 
 if __name__ == "__main__":
