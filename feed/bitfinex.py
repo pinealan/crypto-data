@@ -17,7 +17,7 @@ _log = logging.getLogger(__name__)
 WSSURL = 'wss://api.bitfinex.com/ws/2'
 
 
-def parse_evt(evt):
+def decode_evt(evt):
     """Parse string repr of market event into dict repr with named keys for bitfinex."""
     channel, *params = evt.split(':')
     kwargs = {}
@@ -41,11 +41,7 @@ def parse_evt(evt):
     return channel, kwargs
 
 
-def parse_raw_msg(msg):
-    return json.loads(msg)
-
-
-def parse_subscribed_msg(msg: dict):
+def encode_evt(msg: dict):
     """Parse subscribed messages from bitfinex into string repr."""
     name = msg['channel']
     cid  = msg['chanId']
@@ -67,7 +63,11 @@ def parse_subscribed_msg(msg: dict):
     return cid, evt
 
 
-class ErrorCode(Enum):
+def parse_raw_msg(msg):
+    return json.loads(msg)
+
+
+class Code(Enum):
     ERR_UNK          = 10000
     ERR_GENERIC      = 10001
     ERR_CONCURRENCY  = 10008
@@ -145,7 +145,7 @@ class BitfinexFeed:
 
         if evt not in self._callbacks:
             self._callbacks[evt] = []
-            channel, kwargs = parse_evt(evt)
+            channel, kwargs = decode_evt(evt)
             msg = {'event': 'subscribe', 'channel': channel}
             msg.update(kwargs)
 
@@ -207,20 +207,39 @@ class BitfinexFeed:
         bfx_event = msg['event']
 
         if bfx_event == 'info':
-            _log.info('Connection acknowledged')
+            code = msg.pop('code', 0)
+            if not code:
+                _log.info('Connection acknowledged')
+            elif code == Code.EVT_STOP:
+                # @Todo handle reconnect
+                _log.info('Server stopped. Reconnect later')
+            elif code == Code.EVT_RESYNC_START:
+                # @Todo handle reconnect
+                _log.info('Server resyncing. Reconnect later')
+            elif code == Code.EVT_RESYNC_STOP:
+                # @Todo handle reconnect
+                _log.info('Server stopped. Reconnecting')
+
+        elif bfx_event == 'error':
+            code    = msg['code']
+            evt_msg = msg['msg']
+
+            if code not in Code or code == Code.ERR_UNK:
+                _log.error('{}:Unknown error'.format(code))
+            elif code == Code.ERR_READY:
+                # @Todo not ready to reconnect
+                pass
+            else:
+                _log.error('{}:{}'.format(code, evt_msg))
 
         elif bfx_event == 'subscribed':
-            cid, evt = parse_subscribed_msg(msg)
+            cid, evt = encode_evt(msg)
             self._id_event[cid] = evt
             _log.info('Subscription success "{}":{}'.format(evt, cid))
 
-        elif bfx_event == 'error':
-            code = msg['code']
-            msg = msg['msg']
-            if code not in ErrorCode:
-                _log.error('{} Unknown error'.format(code))
-            else:
-                _log.error('{}'.format(code))
+        elif bfx_event == 'pong':
+            pass
+
         else:
             raise BadMessage(msg)
 

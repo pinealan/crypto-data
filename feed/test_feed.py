@@ -15,20 +15,20 @@ def test_bifinex_wss():
     feed.close()
 
 
-def test_bitfinex_parse_evt():
-    channel, kwargs = bfx.parse_evt('trades:tBTCUSD')
+def test_bitfinex_decode_trades():
+    channel, kwargs = bfx.decode_evt('trades:tBTCUSD')
     assert channel == 'trades'
     assert kwargs == {'symbol': 'tBTCUSD'}
 
 
-def test_bitfinex_encode_candles():
-    evt = 'candles:tBTCUSD:1m'
-    assert bfx.parse_evt(evt) == ('candles', {'key': 'trades:tBTCUSD:1m'})
-
-
 def test_bitfinex_decode_candles():
+    evt = 'candles:tBTCUSD:1m'
+    assert bfx.decode_evt(evt) == ('candles', {'key': 'trade:tBTCUSD:1m'})
+
+
+def test_bitfinex_encode_candles():
     msg = {'channel': 'candles',  'chanId': 1, 'key': 'trade:tBTCUSD:1m'}
-    assert bfx.parse_subscribed_msg(msg) == (1, 'candles:tBTCUSD:1m')
+    assert bfx.encode_evt(msg) == (1, 'candles:tBTCUSD:1m')
 
 
 def test_check_connection():
