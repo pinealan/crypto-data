@@ -3,28 +3,9 @@ import sys
 import logging
 import traceback
 
+import click
 import numpy as np
 import pandas as pd
-
-
-def print_help():
-    usage = [
-        'Usage:',
-        '   convert --from tick.csv --to candle.csv --in btctick.csv --out btccandle.csv',
-        '',
-        'Arguments:',
-        '   --from <input_data.file_format>',
-        '   --to <output_data.file_format>',
-        '   --in <input_file>',
-        '   --out <output_file>',
-        '',
-        'Options --from=*.csv',
-        '   [--header <col0,col1,col2,...>]',
-        '',
-        'Options --to=candle.*',
-        '   --period <seconds>',
-    ]
-    print('\n'.join(usage))
 
 
 def round_down_nearest(n, precision: int):
@@ -107,67 +88,37 @@ _write_table = {
 }
 
 
-def read_data(file, data_fmt, file_fmt, kwargs):
-    return _read_table[(data_fmt, file_fmt)](file, kwargs)
+def read_data(filename, data_fmt, file_fmt, kwargs):
+    return _read_table[(data_fmt, file_fmt)](filename, kwargs)
 
 
-def convert(data, in_data_fmt, out_data_fmt, kwargs):
+def convert(data, in_data_fmt, out_data_fmt, kwargs=None):
     return _convert_table[(in_data_fmt, out_data_fmt)](data, kwargs)
 
 
-def write_data(data, file, data_fmt, file_fmt):
-    _write_table[(data_fmt, file_fmt)](data, file)
+def write_data(filename, data, data_fmt, file_fmt):
+    _write_table[(data_fmt, file_fmt)](data, filename)
 
 
-def parse_cmdline_args(args):
-    kwargs = {}
-    for kw, arg in zip(args[::2], args[1::2]):
-        if kw.startswith('--'):
-            if arg.isdigit():
-                kwargs[kw[2:]] = int(arg)
-            else:
-                kwargs[kw[2:]] = arg
-        else:
-            logging.error("{} {}".format(kw, arg))
-            raise ValueError('Arguments must be in "--key value" format')
-    return kwargs
-
-
-def parse_format(fmt):
-    return fmt.split('.')
-
-
-def main():
-    if len(sys.argv) == 1:
-        print_help()
-        return
-
-    kwargs = parse_cmdline_args(sys.argv[1:])
-
+@click.command()
+@click.option(
+    '--infile', default='csv', show_default=True,
+    help='Input data file format'
+)
+@click.option(
+    '-outfile', default='csv', show_default=True,
+    help='Output data file format'
+)
+@click.argument('input-format')
+@click.argument('output-format')
+@click.argument('src')
+@click.argument('dest')
+def main(infile, outfile, input_format, output_format, src, dest, **kwargs):
     logging.basicConfig(level=logging.INFO)
-    logging.debug(kwargs)
 
-    try:
-        in_data, in_fmt = parse_format(kwargs['from'])
-        out_data, out_fmt = parse_format(kwargs['to'])
-
-        file = kwargs['in']
-        out  = kwargs['out']
-
-        data = read_data(file, in_data, in_fmt, kwargs)
-        data = convert(data, in_data, out_data, kwargs)
-        write_data(data, out, out_data, out_fmt)
-    except ValueError as e:
-        _, _, tb = sys.exc_info()
-        traceback.print_tb(tb)
-        logging.error(e.__repr__())
-    except KeyError as e:
-        # @Todo: Do something?
-        print_help()
-        raise
-    except Exception as e:
-        print_help()
-        raise
+    data = read_data(src, input_format, infile,  kwargs)
+    data = convert(data, input_format, output_format)
+    write_data(dest, data, output_format, outfile)
 
 
 if __name__ == "__main__":
