@@ -8,36 +8,32 @@ import numpy as np
 import pandas as pd
 
 
-def round_down_nearest(n, precision: int):
+def _round_down_nearest(n, precision: int):
     return (n // precision) * precision
 
 
 def tick_from_csv(fname, **kwargs):
-    return pd.read_csv(fname, **kwargs)
-
-
-def _tick_from_csv(fname, **kwargs):
     header = None
     if 'header' in kwargs:
         header = kwargs['header'].split(',')
-    return tick_from_csv(fname, names=header)
+    return pd.read_csv(fname, names=header)
 
 
-def tick_from_json(fname):
+def tick_from_json(fname, **kwargs):
     return pd.read_json(open(fname), convert_dates=False, lines=True)
 
 
-def _tick_from_json(fname, **kwargs):
-    return tick_from_json(fname)
-
-
-def tick_to_candle(tick: pd.DataFrame, period: int) -> pd.DataFrame:
+def tick_to_candle(tick: pd.DataFrame, period: int, **kwargs) -> pd.DataFrame:
     """Convert tick data to candle data."""
+
+    # Options
+    period = kwargs['period']
+
     tick = tick.set_index('timestamp') \
                .sort_index()
 
-    start = round_down_nearest(tick.index.min(), period)
-    end   = round_down_nearest(tick.index.max(), period) + period
+    start = _round_down_nearest(tick.index.min(), period)
+    end   = _round_down_nearest(tick.index.max(), period) + period
     bars  = []
 
     for idx, itr in enumerate(range(start, end, period)):
@@ -63,8 +59,7 @@ def tick_to_candle(tick: pd.DataFrame, period: int) -> pd.DataFrame:
     return pd.DataFrame(bars, columns=['open', 'close', 'hi', 'low', 'volume', 'timestamp'])
 
 
-def _tick_to_candle(tick, **kwargs):
-    period = kwargs['period']
+def tick_to_candle(tick, **kwargs):
     return tick_to_candle(tick, period)
 
 
@@ -73,13 +68,13 @@ def candle_to_csv(data, fname):
 
 
 _read_table = {
-        ('tick', 'csv'): _tick_from_csv,
-        ('tick', 'json'): _tick_from_json,
+        ('tick', 'csv'): tick_from_csv,
+        ('tick', 'json'): tick_from_json,
 }
 
 
 _convert_table = {
-        ('tick', 'candle'): _tick_to_candle,
+        ('tick', 'candle'): tick_to_candle,
 }
 
 
