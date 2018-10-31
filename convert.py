@@ -14,6 +14,10 @@ def _round_down_nearest(n, precision: int):
     return (n // precision) * precision
 
 
+# ------------------
+# | Input routines |
+# ------------------
+
 def tick_from_csv(file, **kwargs):
     header = None
     if 'header' in kwargs:
@@ -25,11 +29,15 @@ def tick_from_json(file, **kwargs):
     return pd.read_json(file, convert_dates=False, lines=True)
 
 
+# -----------------------
+# | Conversion routines |
+# -----------------------
+
 def tick_to_candle(tick: pd.DataFrame, **kwargs) -> pd.DataFrame:
     """Convert tick data to candle data."""
 
     # Options
-    period = kwargs['period']
+    period = int(kwargs['period'])
 
     tick = tick.set_index('timestamp') \
                .sort_index()
@@ -61,13 +69,35 @@ def tick_to_candle(tick: pd.DataFrame, **kwargs) -> pd.DataFrame:
     return pd.DataFrame(bars, columns=['open', 'close', 'hi', 'low', 'volume', 'timestamp'])
 
 
-def tick_to_candle(tick, **kwargs):
-    return tick_to_candle(tick, period)
+# -------------------
+# | Output routines |
+# -------------------
+
+def tick_to_tuple(data: pd.DataFrame, file):
+    for row in data.iterrows():
+        file.write('({})'.format(','.join((
+            row.price,
+            row.timestamp,
+            row.amount,
+            row.type,
+        ))))
 
 
-def candle_to_csv(data, fname):
-    data.to_csv(fname, index=False)
+def tick_to_csv(data: pd.DataFrame, file):
+    data.to_csv(file, columns=('price', 'timestamp', 'amount', 'type'), index=False)
 
+
+def candle_to_tuple(data: pd.DataFrame, file, **kwargs):
+    pass
+
+
+def candle_to_csv(data, file, **kwargs):
+    data.to_csv(file, index=False)
+
+
+# -----------------------------------------------------
+# | Middleware for finding correct converion routines |
+# -----------------------------------------------------
 
 _read_table = {
         ('tick', 'csv'): tick_from_csv,
@@ -81,12 +111,12 @@ _convert_table = {
 
 
 _write_table = {
+        ('tick', 'tuple'): tick_to_tuple,
+        ('tick', 'csv'): tick_to_csv,
+        ('candle', 'tuple'): candle_to_tuple,
         ('candle', 'csv'): candle_to_csv,
 }
 
-# -----------------------------------------------------
-# | Middleware for finding correct converion routines |
-# -----------------------------------------------------
 
 def read_data(file, data_fmt, file_fmt, **kwargs):
     """ Read data.
@@ -149,10 +179,14 @@ def write_data(file, data, data_fmt, file_fmt, **kwargs):
     '-o', '--outfile', default='csv', show_default=True,
     help='Output data file format'
 )
+@click.option('-s', '--src', default=sys.stdin,
+    help='Name of file to read, read from stdin if not provided'
+)
+@click.option('-d', '--dest', default=sys.stdout,
+    help='Name of file to write, write to stdout if not provided'
+)
+@click.option('--output-format', default=None, help='Data format of output')
 @click.argument('input-format')
-@click.argument('output-format')
-@click.argument('src')
-@click.argument('dest')
 @click.argument('kwargs', nargs=-1)
 @click.pass_context
 def main(ctx, infile, outfile, input_format, output_format, src, dest, kwargs):
@@ -169,6 +203,9 @@ def main(ctx, infile, outfile, input_format, output_format, src, dest, kwargs):
 
     if input_format == output_format and infile == outfile:
         ctx.fail('No conversion needed between identical data types.')
+
+    if output_format is None:
+         output_format = input_format
 
     # Read
     data = read_data(src, input_format, infile, **kws)
