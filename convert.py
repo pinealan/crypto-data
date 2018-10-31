@@ -60,7 +60,7 @@ def tick_to_candle(tick: pd.DataFrame, period: int) -> pd.DataFrame:
     bars  = []
 
     for idx, itr in enumerate(range(start, end, period)):
-        if not (idx % 10):
+        if not (idx % 100):
             logging.info('Collected {} candles'.format(idx))
 
         index     = (tick.index >= itr) & (tick.index < itr + period)
