@@ -185,11 +185,11 @@ def write_data(file, data, data_fmt, file_fmt, **kwargs):
 @click.option('-d', '--dest', default=sys.stdout,
     help='Name of file to write, write to stdout if not provided'
 )
-@click.option('--output-format', default=None, help='Data format of output')
-@click.argument('input-format')
+@click.option('--output-type', default=None, help='Data type of output')
+@click.argument('input-type')
 @click.argument('kwargs', nargs=-1)
 @click.pass_context
-def main(ctx, infile, outfile, input_format, output_format, src, dest, kwargs):
+def main(ctx, infile, outfile, input_type, output_type, src, dest, kwargs):
     """Entry point of the financial data conversion tool."""
     logging.basicConfig(level=logging.INFO)
 
@@ -201,21 +201,21 @@ def main(ctx, infile, outfile, input_format, output_format, src, dest, kwargs):
             ctx.fail("Variadic arguments must come in key-value pairs")
         kws[pair[0]] = pair[1]
 
-    if input_format == output_format and infile == outfile:
+    if input_type == output_type and infile == outfile:
         ctx.fail('No conversion needed between identical data types.')
 
-    if output_format is None:
-         output_format = input_format
+    if output_type is None:
+         output_type = input_type
 
     # Read
-    data = read_data(src, input_format, infile, **kws)
+    data = read_data(src, input_type, infile, **kws)
 
     # Convert financial data types
-    if input_format != output_format:
-        data = convert(data, input_format, output_format, **kws)
+    if input_type != output_type:
+        data = convert(data, input_type, output_type, **kws)
 
     # Write data
-    return write_data(dest, data, output_format, outfile, **kws)
+    return write_data(dest, data, output_type, outfile, **kws)
 
 
 if __name__ == "__main__":
