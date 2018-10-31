@@ -66,7 +66,7 @@ def tick_to_candle(tick: pd.DataFrame, **kwargs) -> pd.DataFrame:
 
         bars.append((op, cl, hi, lo, vol, ts))
 
-    return pd.DataFrame(bars, columns=['open', 'close', 'hi', 'low', 'volume', 'timestamp'])
+    return pd.DataFrame(bars, columns=['open', 'close', 'high', 'low', 'volume', 'timestamp'])
 
 
 # -------------------
@@ -74,13 +74,13 @@ def tick_to_candle(tick: pd.DataFrame, **kwargs) -> pd.DataFrame:
 # -------------------
 
 def tick_to_tuple(data: pd.DataFrame, file):
-    for row in data.iterrows():
-        file.write('({})'.format(','.join((
+    for idx, row in data.iterrows():
+        file.write('({},{},{},{})\n'.format(
             row.price,
             row.timestamp,
             row.amount,
             row.type,
-        ))))
+        ))
 
 
 def tick_to_csv(data: pd.DataFrame, file):
@@ -88,7 +88,15 @@ def tick_to_csv(data: pd.DataFrame, file):
 
 
 def candle_to_tuple(data: pd.DataFrame, file, **kwargs):
-    pass
+    for idx, row in data.iterrows():
+        file.write('({},{},{},{},{},{},{})\n'.format(
+            row.open,
+            row.close,
+            row.high,
+            row.low,
+            row.volume,
+            row.timestamp,
+        ))
 
 
 def candle_to_csv(data, file, **kwargs):
