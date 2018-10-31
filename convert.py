@@ -1,4 +1,6 @@
 #!/usr/bin/python3
+"""Conversion routines between various types of financial market data."""
+
 import sys
 import logging
 import traceback
@@ -23,7 +25,7 @@ def tick_from_json(fname, **kwargs):
     return pd.read_json(open(fname), convert_dates=False, lines=True)
 
 
-def tick_to_candle(tick: pd.DataFrame, period: int, **kwargs) -> pd.DataFrame:
+def tick_to_candle(tick: pd.DataFrame, **kwargs) -> pd.DataFrame:
     """Convert tick data to candle data."""
 
     # Options
@@ -151,18 +153,27 @@ def write_data(filename, data, data_fmt, file_fmt, **kwargs):
 @click.argument('output-format')
 @click.argument('src')
 @click.argument('dest')
+@click.argument('kwargs', nargs=-1)
 @click.pass_context
-def main(ctx, infile, outfile, input_format, output_format, src, dest):
+def main(ctx, infile, outfile, input_format, output_format, src, dest, kwargs):
+    """Entry point of the financial data conversion tool."""
+    kws = {}
+    for arg in kwargs:
+        pair = arg.split('=')
+        if len(pair) == 1:
+            ctx.fail("Variadic arguments must come in key-value pairs")
+        kws[pair[0]] = pair[1]
+
     if input_format == output_format and infile == outfile:
         ctx.fail('No conversion needed between identical data types.')
 
     logging.basicConfig(level=logging.INFO)
-    data = read_data(src, input_format, infile)
+    data = read_data(src, input_format, infile, **kws)
 
     if input_format != output_format:
-        data = convert(data, input_format, output_format)
+        data = convert(data, input_format, output_format, **kws)
 
-    return write_data(dest, data, output_format, outfile)
+    return write_data(dest, data, output_format, outfile, **kws)
 
 
 if __name__ == "__main__":
