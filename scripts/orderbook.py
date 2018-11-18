@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import json
 import logging
@@ -25,11 +26,14 @@ def special_name():
     return str(int(time.time()))
 
 
-def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
+def main(
+        *,
+        root='cryptle-exchange/bitstamp-book',
+        backend='os',
+        resolution='day',
+        pairs=['btcusd']
+    ):
     ext    = 'json'
-
-    log_to_stdout()
-
     sinks = {}
     for pair in pairs:
         sinks[pair] = Datasink(
@@ -40,23 +44,25 @@ def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
             filename=special_name)
 
     while True:
-        for pair in pairs:
-            data = req_orderbook(pair)
-            write_orderbook_to_sink(data, sinks[pair])
-        time.sleep(600)
+        try:
+            for pair in pairs:
+                data = req_orderbook(pair)
+                write_orderbook_to_sink(data, sinks[pair])
+            time.sleep(600)
+        except KeyboardInterrupt:
+            print('Terminating...')
+            return 0
+        except Exception:
+            logging.error('Uncaught exception %s', e)
+            return 1
 
 
 if __name__ == '__main__':
-    config = {
-        'root': 'cryptle-exchange/bitstamp-book',
-        'backend': 'os',
-        'resolution': 'day',
-        'pairs': ['btcusd']
-    }
-
+    config = {}
     if os.path.isfile('book.conf'):
         with open('book.conf') as f:
             for line in f:
                 name, var = line.partition('=')[::2]
                 config[name.strip()] = var.strip()
-    main(**config)
+    logging.basicConfig(level=logging.INFO)
+    sys.exit(main(**config))
