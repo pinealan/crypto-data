@@ -15,7 +15,13 @@ def write_tick_to_sink(record, sink):
     sink.write(msg)
 
 
-def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
+def main(
+        *,
+        root='cryptle-exchange/bitstamp-tick',
+        pairs=('btcusd', 'bchusd', 'ethusd', 'xrpusd'),
+        resolution=Datasink.MINUTE,
+        backend='os'
+    ):
     header = ['id', 'price', 'amount', 'time']
     header = ','.join(header)
     ext    = 'csv'
@@ -30,7 +36,8 @@ def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
             ext=ext,
             header=header,
             resolution=resolution,
-            backend=backend)
+            backend=backend,
+        )
 
     conn = bitstamp.Bitstamp()
     conn.connect()
@@ -52,15 +59,10 @@ def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
 
 
 if __name__ == '__main__':
-    config = {
-        'root': 'cryptle-exchange/bitstamp-tick',
-        'backend': 'os',
-        'resolution': 'min',
-        'pairs': ['btcusd']
-    }
+    config = {}
     if os.path.isfile('tick.conf'):
         with open('tick.conf') as f:
             for line in f:
                 name, var = line.partition('=')[::2]
                 config[name.strip()] = var.strip()
-    main(**config)
+    sys.exit(main(**config))

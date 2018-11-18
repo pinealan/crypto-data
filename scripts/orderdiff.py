@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import logging
 from functools import partial
 
 from feed import bitstamp
@@ -11,21 +12,26 @@ def record_diff(record, diff_type, sink):
     rec = json.loads(record)
     rec['diff_type'] = diff_type
 
-    # Bitstamp API changes without notice with no updates to docs
-    # Be aware
+    # Beware of unannounced Bitstamp API changes and with no updates to docs
     fields = ['id', 'price', 'amount', 'order_type', 'diff_type', 'microtimestamp']
     msg = ','.join([str(rec[field]) for field in fields])
     sink.write(msg)
     return
 
 
-def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
+def main(
+        *,
+        root='cryptle-exchange/bitstamp-diff',
+        pairs=('btcusd', 'bchusd', 'ethusd', 'xrpusd'),
+        resolution=Datasink.MINUTE,
+        backend='os'
+    ):
     # Use csv header
     header = ['time', 'id', 'price', 'volume', 'order_type', 'diff_type', 'src_time']
     header = ','.join(header)
     ext    = 'csv'
 
-    log_to_stdout()
+    log_to_stdout(level=logging.DEBUG)
 
     # Prepare sinks
     sinks = {}
@@ -35,7 +41,8 @@ def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
             ext=ext,
             header=header,
             resolution=resolution,
-            backend=backend)
+            backend=backend,
+        )
 
     conn = bitstamp.Bitstamp()
     conn.connect()
@@ -59,16 +66,10 @@ def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
 
 
 if __name__ == '__main__':
-    # default config
-    config = {
-        'root': 'cryptle-exchange/bitstamp-diff',
-        'backend': 'os',
-        'resolution': 'min',
-        'pairs': ['btcusd'],
-    }
+    config = {}
     if os.path.isfile('diff.conf'):
         with open('diff.conf') as f:
             for line in f:
                 name, var = line.partition('=')[::2]
                 config[name.strip()] = var.strip()
-    main(**config)
+    sys.exit(main(**config))
