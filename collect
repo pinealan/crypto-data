@@ -1,7 +1,10 @@
 #!/bin/bash
 
 # Start all 3 collection scripts
+
+export PYTHONPATH='.'
 python3 scripts/tick.py &
 python3 scripts/orderdiff.py &
 python3 scripts/orderbook.py &
 
+jobs
