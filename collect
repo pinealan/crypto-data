@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Start all 3 collection scripts
+python3 scripts/tick.py &
+python3 scripts/orderdiff.py &
+python3 scripts/orderbook.py &
+
