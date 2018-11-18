@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import json
 import logging
@@ -31,8 +32,6 @@ def main(
     header = ','.join(header)
     ext    = 'csv'
 
-    log_to_stdout(level=logging.DEBUG)
-
     # Prepare sinks
     sinks = {}
     for pair in pairs:
@@ -44,7 +43,7 @@ def main(
             backend=backend,
         )
 
-    conn = bitstamp.Bitstamp()
+    conn = bitstamp.BitstampFeed()
     conn.connect()
 
     for pair in pairs:
@@ -54,15 +53,18 @@ def main(
 
     while True:
         try:
-            while conn.connected():
+            while conn.is_connected():
                 time.sleep(0.2)
         except ConnectionError:
             # reconnect
             conn.connect()
         except KeyboardInterrupt:
             print('Terminating...')
-            conn.disconnect()
+            conn.close()
             return 0
+        except Exception:
+            logging.error('Uncaught exception %s', e)
+            return 1
 
 
 if __name__ == '__main__':
@@ -72,4 +74,5 @@ if __name__ == '__main__':
             for line in f:
                 name, var = line.partition('=')[::2]
                 config[name.strip()] = var.strip()
+    logging.basicConfig(level=logging.INFO)
     sys.exit(main(**config))
