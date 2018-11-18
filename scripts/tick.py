@@ -32,11 +32,23 @@ def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
             resolution=resolution,
             backend=backend)
 
-    with bitstamp.connect() as conn:
-        for pair in pairs:
-            conn.onTrade(pair, partial(write_tick_to_sink, sink=sinks[pair]))
-        while conn.is_connected():
-            time.sleep(5)
+    conn = bitstamp.Bitstamp()
+    conn.connect()
+
+    for pair in pairs:
+        conn.onTrade(pair, partial(write_tick_to_sink, sink=sinks[pair]))
+
+    while True:
+        try:
+            while conn.connected():
+                time.sleep(0.2)
+        except ConnectionError:
+            # reconnect
+            conn.connect()
+        except KeyboardInterrupt:
+            print('Terminating...')
+            conn.disconnect()
+            return 0
 
 
 if __name__ == '__main__':

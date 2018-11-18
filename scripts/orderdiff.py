@@ -37,13 +37,25 @@ def main(*, root, pairs, resolution=Datasink.DAY, backend=None):
             resolution=resolution,
             backend=backend)
 
-    with bitstamp.connect() as conn:
-        for pair in pairs:
-            conn.onCreate(pair, partial(record_diff, diff_type='create', sink=sinks[pair]))
-            conn.onDelete(pair, partial(record_diff, diff_type='delete', sink=sinks[pair]))
-            conn.onChange(pair, partial(record_diff, diff_type='take', sink=sinks[pair]))
-        while conn.is_connected():
-            time.sleep(2)
+    conn = bitstamp.Bitstamp()
+    conn.connect()
+
+    for pair in pairs:
+        conn.onCreate(pair, partial(record_diff, diff_type='create', sink=sinks[pair]))
+        conn.onDelete(pair, partial(record_diff, diff_type='delete', sink=sinks[pair]))
+        conn.onChange(pair, partial(record_diff, diff_type='take', sink=sinks[pair]))
+
+    while True:
+        try:
+            while conn.connected():
+                time.sleep(0.2)
+        except ConnectionError:
+            # reconnect
+            conn.connect()
+        except KeyboardInterrupt:
+            print('Terminating...')
+            conn.disconnect()
+            return 0
 
 
 if __name__ == '__main__':
