@@ -43,12 +43,24 @@ def main(
             backend=backend,
             filename=special_name)
 
+    consec_fail_count = 0
+
     while True:
         try:
             for pair in pairs:
                 data = req_orderbook(pair)
                 write_orderbook_to_sink(data, sinks[pair])
+                consec_fail_count = 0  # reset counter
             time.sleep(600)
+        except ConnectionError:
+            consec_fail_count += 1
+            if consec_fail_count < 10:
+                # HTTP errors are not important so we can tolerate a number of them
+                # Sleep for a bit before trying again
+                time.sleep(5)
+            else:
+                # Connection may have degraded, wait a bit longer
+                time.sleep(300)
         except KeyboardInterrupt:
             print('Terminating...')
             return 0
