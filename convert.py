@@ -91,9 +91,9 @@ def candle_to_tuple(data: pd.DataFrame, file, **kwargs):
     for idx, row in data.iterrows():
         file.write('({},{},{},{},{},{},{})\n'.format(
             row.open,
-            row.close,
             row.high,
             row.low,
+            row.close,
             row.volume,
             row.timestamp,
         ))
