@@ -8,7 +8,8 @@ from functools import partial
 import requests as req
 
 from feed import bitstamp
-from datasink import Datasink, log_to_stdout
+from datasink import Datasink
+import datasink
 
 
 def write_orderbook_to_sink(book, sink):
@@ -20,10 +21,6 @@ def req_orderbook(pair):
     if res.status_code != 200:
         raise ConnectionError(res.status_code)
     return res.text
-
-
-def special_name():
-    return str(int(time.time()))
 
 
 def main(
@@ -39,9 +36,10 @@ def main(
         sinks[pair] = Datasink(
             root='/'.join([root, pair]),
             ext=ext,
+            name=1,
             resolution=resolution,
-            backend=backend,
-            filename=special_name)
+            backend=backend
+        )
 
     consec_fail_count = 0
 
@@ -76,5 +74,4 @@ if __name__ == '__main__':
             for line in f:
                 name, var = line.partition('=')[::2]
                 config[name.strip()] = var.strip()
-    logging.basicConfig(level=logging.INFO)
     sys.exit(main(**config))

@@ -36,9 +36,10 @@ def main(
     sinks = {}
     for pair in pairs:
         sinks[pair] = Datasink(
-            root='/'.join([root, pair]),
+            root='-'.join([root, pair]),
             ext=ext,
             header=header,
+            name=2,
             resolution=resolution,
             backend=backend,
         )

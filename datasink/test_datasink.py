@@ -81,20 +81,6 @@ def test_no_overwrite_existing_file():
     shutil.rmtree(root)
 
 
-def test_custom_filename():
-    def const_name():
-        return 'custom'
-
-    sink = Datasink(root=root, ext=ext, resolution=resolution, filename=const_name)
-    sink.write('test')
-
-    month = datetime.now().strftime('%Y/%m/')
-    assert os.path.isfile('{}/{}{}.{}'.format(root, month, const_name(), ext))
-
-    del sink
-    shutil.rmtree(root)
-
-
 def test_headers():
     header  = 'header'
     teststr = 'test'
@@ -109,7 +95,6 @@ def test_headers():
     del sink
     shutil.rmtree(root)
 
-
 def test_s3_buffer():
     root    = 'bucket/__test'
     backend = Datasink.S3
@@ -119,3 +104,33 @@ def test_s3_buffer():
     sink.write(teststr)
 
     assert sink._file.getvalue() == teststr + '\n'
+
+
+def test_mode_0():
+    entry = 'hello world'
+    sink = Datasink(root, namemode=0)
+    sink.write(entry)
+    f = str(sink._filepath)
+    sink.close()
+
+    # Filename is smallest time unit, shouldn't be too long
+    assert len(f.split('/')[-1]) < 8
+    assert open(f).readline() == entry + '\n'
+
+    del sink
+    shutil.rmtree(root)
+
+
+def test_mode_1():
+    entry = 'hello world'
+    sink = Datasink(root, namemode=1)
+    sink.write(entry)
+    f = str(sink._filepath)
+    sink.close()
+
+    # Filename is unix timestamp, should be long
+    assert len(f.split('/')[-1]) > 12
+    assert open(f).readline() == entry + '\n'
+
+    del sink
+    shutil.rmtree(root)

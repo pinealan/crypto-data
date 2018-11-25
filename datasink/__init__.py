@@ -1,1 +1,1 @@
-from datasink.datasink import Datasink, log_to_stdout
+from datasink.datasink import Datasink, stdout_logger
