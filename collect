@@ -9,10 +9,10 @@ import scripts.tick as tick  # socket stream
 import scripts.orderdiff as diff  # socket stream
 import scripts.orderbook as book  # http polling
 
+
 # Start all 3 collection scripts
 if __name__ == '__main__':
-
-    # configure logger
+    # configure loggers
     sh = logging.StreamHandler()
     sh.setLevel(logging.INFO)
     fh = logging.FileHandler('collect.log')

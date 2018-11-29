@@ -45,7 +45,6 @@ def main(
         )
 
     consec_fail_count = 0
-    datasink.stdout_logger()
 
     while True:
         try:
@@ -78,4 +77,5 @@ if __name__ == '__main__':
             for line in f:
                 name, var = line.partition('=')[::2]
                 config[name.strip()] = var.strip()
+    datasink.stdout_logger()
     sys.exit(main(**config))

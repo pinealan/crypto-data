@@ -42,7 +42,6 @@ def main(
             backend=backend,
         )
 
-    stdout_logger()
     conn = bitstamp.BitstampFeed()
     conn.connect()
 
@@ -73,4 +72,5 @@ if __name__ == '__main__':
                 name, var = line.partition('=')[::2]
                 config[name.strip()] = var.strip()
     logging.basicConfig(level=logging.INFO)
+    stdout_logger()
     sys.exit(main(**config))
