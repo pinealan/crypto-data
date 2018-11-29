@@ -9,6 +9,9 @@ from feed import bitstamp
 from datasink import Datasink, stdout_logger
 
 
+CONFIG_FILE = 'tick.conf'
+
+
 def write_tick_to_sink(record, sink):
     rec = json.loads(record)
     fields = ['id', 'price', 'amount', 'timestamp']
@@ -64,8 +67,8 @@ def main(
 
 if __name__ == '__main__':
     config = {}
-    if os.path.isfile('tick.conf'):
-        with open('tick.conf') as f:
+    if os.path.isfile(CONFIG_FILE):
+        with open(CONFIG_FILE) as f:
             for line in f:
                 name, var = line.partition('=')[::2]
                 config[name.strip()] = var.strip()

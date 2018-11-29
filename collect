@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
+import os
 import time
 import logging
 import multiprocessing as mp
 
-from scripts.tick import main as tick          # socket stream
-from scripts.orderdiff import main as orderdiff     # socket stream
-from scripts.orderbook import main as orderbook     # http polling
+import scripts.tick as tick  # socket stream
+import scripts.orderdiff as diff  # socket stream
+import scripts.orderbook as book  # http polling
 
 # Start all 3 collection scripts
 if __name__ == '__main__':
@@ -14,15 +15,35 @@ if __name__ == '__main__':
     # configure logger
     sh = logging.StreamHandler()
     sh.setLevel(logging.INFO)
+    fh = logging.FileHandler('collect.log')
+    fh.setLevel(logging.DEBUG)
+
     logger = logging.getLogger('main')
     logger.setLevel(logging.DEBUG)
     logger.addHandler(sh)
 
-    # read configs and start collection processes
-    ps = [mp.Process(target=s, args=()) for s in (tick, orderdiff, orderbook)]
+    logging.getLogger().addHandler(sh)
+    logging.getLogger().addHandler(fh)
+
+    # holds all collection processes
+    ps = []
+
+    # read configs and init processes
+    for module in (tick, diff, book):
+        config = {}
+        conf = module.CONFIG_FILE
+        if os.path.isfile(conf):
+            with open(conf) as f:
+                for line in f:
+                    name, var = line.partition('=')[::2]
+                    config[name.strip()] = eval(var.strip())
+        ps.append(mp.Process(target=module.main, kwargs=config))
+
+    # start all collection
     for p in ps:
         p.start()
 
+    # listen and handle termination signals
     while True:
         try:
             time.sleep(0.5)
@@ -32,6 +53,7 @@ if __name__ == '__main__':
                 logger.debug('SIGTERM sent to %s', p)
             break
 
+    # debug log
     for p in ps:
         p.join(5)
-        logger.info('%s joined', p.name)
+        logger.deubg('%s joined', p.name)

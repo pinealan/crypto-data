@@ -9,6 +9,9 @@ from feed import bitstamp
 from datasink import Datasink, stdout_logger
 
 
+CONFIG_FILE = 'diff.conf'
+
+
 def record_diff(record, diff_type, sink):
     rec = json.loads(record)
     rec['diff_type'] = diff_type
@@ -71,8 +74,8 @@ def main(
 
 if __name__ == '__main__':
     config = {}
-    if os.path.isfile('diff.conf'):
-        with open('diff.conf') as f:
+    if os.path.isfile(CONFIG_FILE):
+        with open(CONFIG_FILE) as f:
             for line in f:
                 name, var = line.partition('=')[::2]
                 config[name.strip()] = var.strip()

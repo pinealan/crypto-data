@@ -12,6 +12,9 @@ from datasink import Datasink
 import datasink
 
 
+CONFIG_FILE = 'book.conf'
+
+
 def write_orderbook_to_sink(book, sink):
     sink.write(book)
 
@@ -70,8 +73,8 @@ def main(
 
 if __name__ == '__main__':
     config = {}
-    if os.path.isfile('book.conf'):
-        with open('book.conf') as f:
+    if os.path.isfile(CONFIG_FILE):
+        with open(CONFIG_FILE) as f:
             for line in f:
                 name, var = line.partition('=')[::2]
                 config[name.strip()] = var.strip()
