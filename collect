@@ -20,10 +20,11 @@ if __name__ == '__main__':
 
     logger = logging.getLogger('main')
     logger.setLevel(logging.DEBUG)
-    logger.addHandler(sh)
 
     logging.getLogger().addHandler(sh)
     logging.getLogger().addHandler(fh)
+    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger('pysher.connection').setLevel(logging.DEBUG)
 
     # holds all collection processes
     ps = []
@@ -50,10 +51,10 @@ if __name__ == '__main__':
         except KeyboardInterrupt:
             for p in ps:
                 p.terminate()
-                logger.debug('SIGTERM sent to %s', p)
+                logger.debug('SIGTERM sent to %s', p.name)
             break
 
     # debug log
     for p in ps:
         p.join(5)
-        logger.deubg('%s joined', p.name)
+        logger.debug('%s joined', p.name)
