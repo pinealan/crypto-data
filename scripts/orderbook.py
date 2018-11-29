@@ -31,7 +31,7 @@ def main(
         root='cryptle-exchange/bitstamp-book',
         backend='os',
         resolution='day',
-        pairs=['btcusd']
+        pairs=('btcusd', 'bchusd', 'ethusd', 'xrpusd')
     ):
     ext    = 'json'
     sinks = {}
