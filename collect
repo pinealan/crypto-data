@@ -1,10 +1,37 @@
-#!/bin/bash
+#!/usr/bin/env python3
+
+import time
+import logging
+import multiprocessing as mp
+
+from scripts.tick import main as tick          # socket stream
+from scripts.orderdiff import main as orderdiff     # socket stream
+from scripts.orderbook import main as orderbook     # http polling
 
 # Start all 3 collection scripts
+if __name__ == '__main__':
 
-export PYTHONPATH='.'
-python3 scripts/tick.py &
-python3 scripts/orderdiff.py &
-python3 scripts/orderbook.py &
+    # configure logger
+    sh = logging.StreamHandler()
+    sh.setLevel(logging.INFO)
+    logger = logging.getLogger('main')
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(sh)
 
-jobs
+    # read configs and start collection processes
+    ps = [mp.Process(target=s, args=()) for s in (tick, orderdiff, orderbook)]
+    for p in ps:
+        p.start()
+
+    while True:
+        try:
+            time.sleep(0.5)
+        except KeyboardInterrupt:
+            for p in ps:
+                p.terminate()
+                logger.debug('SIGTERM sent to %s', p)
+            break
+
+    for p in ps:
+        p.join(5)
+        logger.info('%s joined', p.name)
