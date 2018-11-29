@@ -6,6 +6,9 @@ import time
 import json
 
 
+logger = logging.getLogger(__name__)
+
+
 class Connection(Thread):
     def __init__(self, event_handler, url, reconnect_handler=None, log_level=logging.INFO,
                  daemon=True, reconnect_interval=10, **thread_kwargs):
@@ -36,10 +39,8 @@ class Connection(Thread):
 
         self.state = "initialized"
 
-        self.logger = logging.getLogger(self.__module__)  # create a new logger
         if log_level == logging.DEBUG:
             websocket.enableTrace(True)
-        self.logger.setLevel(log_level)
 
         # From Martyn's comment at:
         # https://pusher.tenderapp.com/discussions/problems/36-no-messages-received-after-1-idle-minute-heartbeat
@@ -80,7 +81,7 @@ class Connection(Thread):
         if reconnect_interval is None:
             reconnect_interval = self.default_reconnect_interval
 
-        self.logger.info("Connection: Reconnect in %s" % reconnect_interval)
+        logger.info("Connection: Reconnect in %s" % reconnect_interval)
         self.reconnect_interval = reconnect_interval
 
         self.needs_reconnect = True
@@ -104,7 +105,7 @@ class Connection(Thread):
         self.socket.run_forever()
 
         while self.needs_reconnect and not self.disconnect_called:
-            self.logger.info("Attempting to connect again in %s seconds."
+            logger.info("Attempting to connect again in %s seconds."
                              % self.reconnect_interval)
             self.state = "unavailable"
             time.sleep(self.reconnect_interval)
@@ -115,7 +116,7 @@ class Connection(Thread):
             self.socket.run_forever()
 
     def _on_open(self, ws):
-        self.logger.info("Connection: Connection opened")
+        logger.info("Connection: Connection opened")
         # Send a ping right away to inform that the connection is alive. If you
         # don't do this, it takes the ping interval to subcribe to channel and
         # events
@@ -123,12 +124,12 @@ class Connection(Thread):
         self._start_timers()
 
     def _on_error(self, ws, error):
-        self.logger.info("Connection: Error - %s" % error)
+        logger.error("Connection: Error - %s" % error)
         self.state = "failed"
         self.needs_reconnect = True
 
     def _on_message(self, ws, message):
-        self.logger.info("Connection: Message - %s" % message)
+        logger.debug("Connection: Message - %s" % message)
 
         # Stop our timeout timer, since we got some data
         self._stop_timers()
@@ -143,9 +144,9 @@ class Connection(Thread):
                         try:
                             func(params['data'], *args, **kwargs)
                         except Exception:
-                            self.logger.exception("Callback raised unhandled")
+                            logger.exception("Callback raised unhandled")
                 else:
-                    self.logger.info("Connection: Unhandled event")
+                    logger.debug("Connection: Unhandled event")
             else:
                 # We've got a channel event.  Lets pass it up to the pusher
                 # so it can be handled by the appropriate channel.
@@ -159,7 +160,7 @@ class Connection(Thread):
         self._start_timers()
 
     def _on_close(self, ws, *args):
-        self.logger.info("Connection: Connection closed")
+        logger.info("Connection: Connection closed")
         self.state = "disconnected"
         self._stop_timers()
 
@@ -191,27 +192,27 @@ class Connection(Thread):
         if channel_name:
             event['channel'] = channel_name
 
-        self.logger.info("Connection: Sending event - %s" % event)
+        logger.debug("Connection: Sending event - %s" % event)
         try:
             self.socket.send(json.dumps(event))
         except Exception as e:
-            self.logger.error("Failed send event: %s" % e)
+            logger.error("Failed send event: %s" % e)
 
     def send_ping(self):
-        self.logger.info("Connection: ping to pusher")
+        logger.debug("Connection: ping to pusher")
         try:
             self.socket.send(json.dumps({'event': 'pusher:ping', 'data': ''}))
         except Exception as e:
-            self.logger.error("Failed send ping: %s" % e)
+            logger.error("Failed send ping: %s" % e)
         self.pong_timer = Timer(self.pong_timeout, self._check_pong)
         self.pong_timer.start()
 
     def send_pong(self):
-        self.logger.info("Connection: pong to pusher")
+        logger.debug("Connection: pong to pusher")
         try:
             self.socket.send(json.dumps({'event': 'pusher:pong', 'data': ''}))
         except Exception as e:
-            self.logger.error("Failed send pong: %s" % e)
+            logger.error("Failed send pong: %s" % e)
 
     def _check_pong(self):
         self.pong_timer.cancel()
@@ -219,7 +220,7 @@ class Connection(Thread):
         if self.pong_received:
             self.pong_received = False
         else:
-            self.logger.info("Did not receive pong in time.  Will attempt to reconnect.")
+            logger.warning("Did not receive pong in time.  Will attempt to reconnect.")
             self.state = "failed"
             self.reconnect()
 
@@ -231,7 +232,7 @@ class Connection(Thread):
         if self.needs_reconnect:
             self.reconnect_handler()
         else:
-            self.logger.debug('Connection: Establisheds first connection')
+            logger.info('Connection: Establisheds first connection')
 
     def _failed_handler(self, data):
         self.state = "failed"
@@ -242,7 +243,7 @@ class Connection(Thread):
         self._start_timers()
 
     def _pong_handler(self, data):
-        self.logger.info("Connection: pong from pusher")
+        logger.debug("Connection: pong from pusher")
         self.pong_received = True
 
     def _pusher_error_handler(self, data):
@@ -255,11 +256,11 @@ class Connection(Thread):
                 pass
 
             if error_code is not None:
-                self.logger.error("Connection: Received error %s" % error_code)
+                logger.warning("Connection: Received error %s" % error_code)
 
                 if (error_code >= 4000) and (error_code <= 4099):
                     # The connection SHOULD NOT be re-established unchanged
-                    self.logger.info("Connection: Error is unrecoverable.  Disconnecting")
+                    logger.error("Connection: Error is unrecoverable. Disconnecting")
                     self.disconnect()
                 elif (error_code >= 4100) and (error_code <= 4199):
                     # The connection SHOULD be re-established after backing off
@@ -270,11 +271,11 @@ class Connection(Thread):
                 else:
                     pass
             else:
-                self.logger.error("Connection: Unknown error code")
+                logger.error("Connection: Unknown error code %i", error_code)
         else:
-            self.logger.error("Connection: No error code supplied")
+            logger.error("Connection: No error code supplied")
 
     def _connection_timed_out(self):
-        self.logger.info("Did not receive any data in time.  Reconnecting.")
+        logger.warning("Did not receive any data in time. Reconnecting.")
         self.state = "failed"
         self.reconnect()
