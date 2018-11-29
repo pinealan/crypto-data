@@ -34,14 +34,15 @@ def main(
     sinks = {}
     for pair in pairs:
         sinks[pair] = Datasink(
-            root='/'.join([root, pair]),
+            root='-'.join([root, pair]),
             ext=ext,
-            name=1,
+            namemode=1,
             resolution=resolution,
             backend=backend
         )
 
     consec_fail_count = 0
+    datasink.stdout_logger()
 
     while True:
         try:
@@ -60,7 +61,7 @@ def main(
                 # Connection may have degraded, wait a bit longer
                 time.sleep(300)
         except KeyboardInterrupt:
-            print('Terminating...')
+            print('\rTerminating...')
             return 0
         except Exception:
             logging.error('Uncaught exception %s', e)

@@ -6,7 +6,7 @@ import logging
 from functools import partial
 
 from feed import bitstamp
-from datasink import Datasink, log_to_stdout
+from datasink import Datasink, stdout_logger
 
 
 def record_diff(record, diff_type, sink):
@@ -39,10 +39,11 @@ def main(
             root='-'.join([root, pair]),
             ext=ext,
             header=header,
-            name=2,
+            namemode=2,
             resolution=resolution,
             backend=backend,
         )
+    stdout_logger()
 
     conn = bitstamp.BitstampFeed()
     conn.connect()
@@ -60,7 +61,7 @@ def main(
             # reconnect
             conn.connect()
         except KeyboardInterrupt:
-            print('Terminating...')
+            print('\rTerminating...')
             conn.close()
             return 0
         except Exception:
