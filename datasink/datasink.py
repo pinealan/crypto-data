@@ -135,15 +135,18 @@ class Datasink:
         # Close local file
         if self._backend == Datasink.OS:
             self._file.close()
+            logger.info('Close local file')
 
         # Write buffer to S3 object
         elif self._backend == Datasink.S3:
             self._obj.put(Body=bytes(self._file.getvalue(), 'utf8'))
             self._file.close()
+            logger.info('Sent file to AWS S3')
 
     def _nextfile(self):
         self._addfooter()
         self.close()
+        logger.info('Rotating to next file')
         self._newfile()
         self._addheader()
 
@@ -188,13 +191,13 @@ class Datasink:
 
             # line buffering, assuming each write will be a line
             self._file = p.open(mode='w', buffering=1)
-            logger.debug('Create local file {}'.format(p))
+            logger.info('Create local file {}'.format(p))
 
         # Create new buffer for S3 object
         elif self._backend == Datasink.S3:
             self._file = io.StringIO()
             self._obj = self._bucket.Object(str(p))
-            logger.debug('Create IO object {} as buffer for S3'.format(p))
+            logger.info('Create IO object {} as buffer for S3'.format(p))
 
     def _addheader(self):
         if self._header:
