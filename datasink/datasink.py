@@ -185,7 +185,6 @@ class Datasink:
             # Prevent ovewriting existing files
             if p.exists():
                 logger.warning('File {} exists. Refusing to overwrite'.format(p))
-                raise FileExistsError
 
             p.parent.mkdir(mode=0o775, parents=True, exist_ok=True)
 
