@@ -13,21 +13,36 @@ import scripts.orderbook as book  # http polling
 # Start all 3 collection scripts
 if __name__ == '__main__':
     # configure loggers
+    datefmt = '%Y-%m-%dT%H:%M:%S'
+
+    # stdout
     sh = logging.StreamHandler()
     sh.setLevel(logging.WARNING)
+
+    # log file handler
     fh = logging.FileHandler('collect.log')
     fh.setLevel(logging.INFO)
     fmt = logging.Formatter(
         fmt='%(levelname)s %(asctime)s %(module)s: %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        datefmt=datefmt
     )
     fh.setFormatter(fmt)
+
+    # error file handler
+    eh = logging.FileHandler('collect.err.log')
+    eh.setLevel(logging.WARNING)
+    err_fmt = logging.Formatter(
+        fmt='%(name):%(levelno)s %(asctime)s %(pathname)s:%(lineno)s: %(message)s',
+        datefmt=datefmt
+    )
+    eh.setFormatter(err_fmt)
 
     logger = logging.getLogger('main')
     logger.setLevel(logging.DEBUG)
 
     logging.getLogger().addHandler(sh)
     logging.getLogger().addHandler(fh)
+    logging.getLogger().addHandler(eh)
     logging.getLogger().setLevel(logging.DEBUG)
     logging.getLogger('pysher.connection').setLevel(logging.DEBUG)
 
